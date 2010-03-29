@@ -24,13 +24,13 @@ class Dynarex
     xml = Builder::XmlMarkup.new( :target => buffer='', :indent => 2 )
     xml.instruct! :xml, :version => "1.0", :encoding => "UTF-8"
 
-    xml.send @root_name do
+    xml.result do
       xml.summary do
         dynarex.summary.each{|key,value| xml.send key, value}
       end
       xml.records do
         dynarex.records.each do |item|
-          xml.send @item_name do
+          xml.send item_name do
             item.each do |key, value| 
               xml.send key, value
             end
