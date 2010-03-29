@@ -55,7 +55,7 @@ class Dynarex
     @doc = Document.new buffer
     @summary = summary_to_h
     @records = records_to_h
-    @root_name = doc.root.name
+    @root_name = @doc.root.name
     @item_name = XPath.first(@doc.root, 'records/*[1]').name    
   end  
 
