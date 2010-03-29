@@ -26,10 +26,10 @@ class Dynarex
 
     xml.send @root_name do
       xml.summary do
-        dynarex.summary.each{|key,value| xml.send key, value}
+        @summary.each{|key,value| xml.send key, value}
       end
       xml.records do
-        dynarex.records.each do |item|
+        @records.each do |item|
           xml.send @item_name do
             item.each do |key, value| 
               xml.send key, value
