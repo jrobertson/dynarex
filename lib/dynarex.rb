@@ -87,7 +87,7 @@ class Dynarex
       end
       [body[default_key.to_sym],{id: id, body: body}]
     end
-    Hash[*ah]
+    Hash[*ah.flatten]
   end
 
   def summary_to_h
