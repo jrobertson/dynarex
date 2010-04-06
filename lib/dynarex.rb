@@ -75,8 +75,8 @@ class Dynarex
   end
 
   def records_to_h(default_key)
-    ah = XPath.match(@doc.root, 'records/*').map do |row|
-      timestamp = Time.now.to_s; id = ''
+    ah = XPath.match(@doc.root, 'records/*').each_with_index.map do |row,i|
+      timestamp = Time.now.to_s; id = Time.now.strftime("%Y%m%I%H%M%S") + i.to_s
       id = row.attribute('id').value.to_s if row.attribute('id')
       timestamp = row.attribute('timestamp').value.to_s if row.attribute('timestamp')
       body = XPath.match(row, '*').inject({}) do |r,node|
