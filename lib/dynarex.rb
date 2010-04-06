@@ -43,18 +43,16 @@ class Dynarex
         @summary.each{|key,value| xml.send key, value}
       end
       xml.records do
-        @records.each do |item|
-          xml.send @item_name do
-            item.each do |key, value| 
-              xml.send key, value
-            end
+        @records.each do |k, item|
+          xml.send(@item_name, id: item[:id], timestamp: item[:timestamp]) do
+            item[:body].each{|name,value| xml.send name, value}
           end
-        end  
+        end
       end
-    end   
-    
+    end
+
     buffer
-    
+
   end
 
   def open(location)
