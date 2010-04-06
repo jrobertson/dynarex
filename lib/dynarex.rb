@@ -7,9 +7,10 @@ require 'builder'
 class Dynarex
   include REXML 
 
-  attr_accessor :default_key
-
-  def initialize(location)
+  def initialize(opt)
+    o = {xml: '', default_key: ''}.merge opt
+    location = o[:xml]
+    @default_key = o[:default_key]
     open(location)
   end
 
