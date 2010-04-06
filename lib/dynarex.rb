@@ -44,8 +44,9 @@ class Dynarex
       end
       xml.records do
         @records.each do |k, item|
-          xml.send(@item_name, id: item[:id], timestamp: item[:timestamp]) do
-            item[:body].each{|name,value| xml.send name, value}
+          xml.send(@item_name, id: item[:id], created: item[:created], \
+            last_modified: item[:last_modified]) do
+              item[:body].each{|name,value| xml.send name, value}
           end
         end
       end
@@ -76,14 +77,17 @@ class Dynarex
 
   def records_to_h(default_key)
     ah = XPath.match(@doc.root, 'records/*').each_with_index.map do |row,i|
-      timestamp = Time.now.to_s; id = Time.now.strftime("%Y%m%I%H%M%S") + i.to_s
+      created = Time.now.to_s; id = Time.now.strftime("%Y%m%I%H%M%S") + i.to_s
+      last_modified = ''
       id = row.attribute('id').value.to_s if row.attribute('id')
-      timestamp = row.attribute('timestamp').value.to_s if row.attribute('timestamp')
+      created = row.attribute('created').value.to_s if row.attribute('created')
+      last_modified = row.attribute('last_modified').value.to_s if row.attribute('last_modified')
       body = XPath.match(row, '*').inject({}) do |r,node|
         r[node.name.to_s.to_sym] = node.text.to_s
         r
       end
-      [body[default_key.to_sym],{id: id, timestamp: timestamp, body: body}]
+      [body[default_key.to_sym],{id: id, created: created, last_modified: \
+        last_modified, body: body}]
     end
     Hash[*ah.flatten]
   end
