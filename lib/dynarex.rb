@@ -84,7 +84,7 @@ class Dynarex
       end
       [timestamp,{id: id, body: body}]
     end
-    Hash[ah]
+    Hash[*ah]
   end
 
   def summary_to_h
