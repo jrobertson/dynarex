@@ -19,7 +19,18 @@ class Dynarex
     @records
   end
   
-  def save(filepath)
+  def to_xml
+    display_xml()
+  end
+  
+  def save(filepath)    
+    xml = display_xml()
+    File.open(filepath,'w'){|f| f.write xml}
+  end
+
+  private
+  
+  def display_xml
     
     xml = Builder::XmlMarkup.new( :target => buffer='', :indent => 2 )
     xml.instruct! :xml, :version => "1.0", :encoding => "UTF-8"
@@ -37,12 +48,11 @@ class Dynarex
           end
         end  
       end
-    end    
+    end   
     
-    File.open(filepath,'w'){|f| f.write buffer}
+    buffer
+    
   end
-
-  private
 
   def open(location)
     if location[/^https?:\/\//] then
@@ -64,12 +74,17 @@ class Dynarex
   end
 
   def records_to_h
-    XPath.match(@doc.root, 'records/*').map do |row|
-      XPath.match(row, '*').inject({}) do |r,node|
+    ah = XPath.match(doc.root, 'records/*').map do |row|
+      timestamp = Time.now.to_s; id = ''
+      id = row.attribute('id').value.to_s if row.attribute('id')
+      timestamp = row.attribute('timestamp').value.to_s if row.attribute('timestamp')
+      body = XPath.match(row, '*').inject({}) do |r,node|
         r[node.name.to_s.to_sym] = node.text.to_s
         r
       end
+      [timestamp,{id: id, body: body}]
     end
+    Hash[ah]
   end
 
   def summary_to_h
