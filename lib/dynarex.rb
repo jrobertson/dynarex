@@ -85,7 +85,7 @@ class Dynarex
         r[node.name.to_s.to_sym] = node.text.to_s
         r
       end
-      [body[default_key.to_sym],{id: id, body: body}]
+      [body[default_key.to_sym],{id: id, timestamp: timestamp, body: body}]
     end
     Hash[*ah.flatten]
   end
