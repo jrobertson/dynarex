@@ -7,6 +7,8 @@ require 'builder'
 class Dynarex
   include REXML 
 
+  attr_accessor :default_key
+
   def initialize(location)
     open(location)
   end
@@ -63,7 +65,7 @@ class Dynarex
       buffer = File.open(location,'r').read
     end
     @doc = Document.new buffer
-    @summary = summary_to_h
+    @summary = summary_to_h @default_key
     @records = records_to_h
     @root_name = @doc.root.name
     @item_name = XPath.first(@doc.root, 'records/*[1]').name    
@@ -73,7 +75,7 @@ class Dynarex
     puts @doc.to_s
   end
 
-  def records_to_h
+  def records_to_h(default_key)
     ah = XPath.match(@doc.root, 'records/*').map do |row|
       timestamp = Time.now.to_s; id = ''
       id = row.attribute('id').value.to_s if row.attribute('id')
@@ -82,7 +84,7 @@ class Dynarex
         r[node.name.to_s.to_sym] = node.text.to_s
         r
       end
-      [timestamp,{id: id, body: body}]
+      [default_key,{id: id, body: body}]
     end
     Hash[*ah]
   end
