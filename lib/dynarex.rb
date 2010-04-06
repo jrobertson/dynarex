@@ -66,8 +66,8 @@ class Dynarex
       buffer = File.open(location,'r').read
     end
     @doc = Document.new buffer
-    @summary = summary_to_h @default_key
-    @records = records_to_h
+    @summary = summary_to_h 
+    @records = records_to_h @default_key
     @root_name = @doc.root.name
     @item_name = XPath.first(@doc.root, 'records/*[1]').name    
   end  
@@ -85,7 +85,7 @@ class Dynarex
         r[node.name.to_s.to_sym] = node.text.to_s
         r
       end
-      [default_key,{id: id, body: body}]
+      [body[default_key.to_sym],{id: id, body: body}]
     end
     Hash[*ah]
   end
