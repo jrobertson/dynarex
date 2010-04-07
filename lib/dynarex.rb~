@@ -1,6 +1,7 @@
 #!/usr/bin/ruby
 
 require 'rexml/document'
+require 'nokogiri'
 require 'open-uri'
 require 'builder'
 
@@ -17,6 +18,32 @@ class Dynarex
 
   def records
     @records
+  end
+  
+  def to_s
+xsl_buffer =<<EOF
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+<xsl:output encoding="UTF-8"
+            method="text"
+            indent="no"
+            omit-xml-declaration="yes"/>
+
+  <xsl:template match="*">
+    <xsl:for-each select="records/*">[!regex_values]<xsl:text>
+</xsl:text>
+    </xsl:for-each>
+  </xsl:template>
+</xsl:stylesheet>
+EOF
+
+    format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
+
+    xslt_format = format_mask.to_s.gsub(/\s(?=\[!\w+\])/,'<xsl:text> </xsl:text>').gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
+    xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
+
+    xslt  = Nokogiri::XSLT(xsl_buffer)
+    out = xslt.transform(Nokogiri::XML(@doc.to_s))
+    out.text
   end
   
   def to_xml
@@ -59,7 +86,7 @@ class Dynarex
     end    
     
     h.each {|key, item| h.delete(key) if not h2.has_key? key}
-    
+    self
   end  
 
   private
