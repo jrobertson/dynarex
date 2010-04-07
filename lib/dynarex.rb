@@ -59,7 +59,7 @@ class Dynarex
     end    
     
     h.each {|key, item| h.delete(key) if not h2.has_key? key}
-    
+    self
   end  
 
   private
