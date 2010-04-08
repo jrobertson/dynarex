@@ -56,13 +56,15 @@ EOF
   end
   
   def parse(buffer)
+    i = XPath.match(@doc.root, 'records/*/attribute::id').max_by(&:value).to_s.to_i
     format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
     t = format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
     lines = buffer.split(/\r?\n|\r(?!\n)/).map {|x|x.match(/#{t}/).captures}
     fields = format_mask.scan(/\[!(\w+)\]/).flatten.map(&:to_sym)
     
-    a = lines.each_with_index.map do|x,i| 
-      created = Time.now.to_s; id = Time.now.strftime("%Y%m%I%H%M%S") + i.to_s
+    a = lines.map do|x| 
+      created = Time.now.to_s
+      
       h = Hash[fields.zip(x)]
       [h[@default_key], {id: id, created: created, last_modified: '', body: h}]
     end
@@ -80,7 +82,8 @@ EOF
           h[key][:body][k.to_sym] = v
         end
       else
-
+        i += 1
+        item[:id] =  i.to_s
         h[key] = item.clone
       end      
     end    
@@ -137,10 +140,18 @@ EOF
   end
 
   def records_to_h()
-    ah = XPath.match(@doc.root, 'records/*').each_with_index.map do |row,i|
-      created = Time.now.to_s; id = Time.now.strftime("%Y%m%I%H%M%S") + i.to_s
+    i = XPath.match(@doc.root, 'records/*/attribute::id').max_by(&:value).to_s.to_i
+    
+    ah = XPath.match(@doc.root, 'records/*').map do |row|
+      
+      created = Time.now.to_s
       last_modified = ''
-      id = row.attribute('id').value.to_s if row.attribute('id')
+      
+      if row.attribute('id') then
+        id = row.attribute('id').value.to_s 
+      else
+        i += 1; id = i.to_s
+      end
       created = row.attribute('created').value.to_s if row.attribute('created')
       last_modified = row.attribute('last_modified').value.to_s if row.attribute('last_modified')
       body = XPath.match(row, '*').inject({}) do |r,node|
