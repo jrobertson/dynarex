@@ -66,7 +66,7 @@ EOF
       created = Time.now.to_s
       
       h = Hash[fields.zip(x)]
-      [h[@default_key], {id: id, created: created, last_modified: '', body: h}]
+      [h[@default_key], {id: '', created: created, last_modified: '', body: h}]
     end
     
     h2 = Hash[a]
