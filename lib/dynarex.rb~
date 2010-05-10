@@ -1,11 +1,13 @@
 #!/usr/bin/ruby
 
+# file: dynarexx.rb
+
 require 'rexml/document'
 require 'nokogiri'
 require 'open-uri'
 require 'builder'
 
-class Dynarex
+class Dynarexx
   include REXML 
 
   def initialize(location)
@@ -18,6 +20,10 @@ class Dynarex
 
   def records
     @records
+  end
+  
+  def flat_records
+    @flat_records
   end
   
   def to_s
@@ -56,15 +62,17 @@ EOF
   end
   
   def parse(buffer)
+    i = XPath.match(@doc.root, 'records/*/attribute::id').max_by(&:value).to_s.to_i
     format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
     t = format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
     lines = buffer.split(/\r?\n|\r(?!\n)/).map {|x|x.match(/#{t}/).captures}
     fields = format_mask.scan(/\[!(\w+)\]/).flatten.map(&:to_sym)
     
-    a = lines.each_with_index.map do|x,i| 
-      created = Time.now.to_s; id = Time.now.strftime("%Y%m%I%H%M%S") + i.to_s
+    a = lines.map do|x| 
+      created = Time.now.to_s
+      
       h = Hash[fields.zip(x)]
-      [h[@default_key], {id: id, created: created, last_modified: '', body: h}]
+      [h[@default_key], {id: '', created: created, last_modified: '', body: h}]
     end
     
     h2 = Hash[a]
@@ -80,7 +88,8 @@ EOF
           h[key][:body][k.to_sym] = v
         end
       else
-
+        i += 1
+        item[:id] =  i.to_s
         h[key] = item.clone
       end      
     end    
@@ -89,7 +98,48 @@ EOF
     self
   end  
 
+  def create(params={})
+
+    record_name, fields = capture_fields(params)
+    record = Element.new record_name
+    fields.each{|k,v| record.add Element.new(k.to_s).add_text(v) if v}
+
+    ids = XPath.match(@doc.root,'records/*/attribute::id').map &:value
+    id = ids.empty? ? 1 : ids.max.succ
+
+    attributes = {id: id, created: Time.now.to_s, last_modified: nil}
+    attributes.each {|k,v| record.add_attribute(k.to_s, v)}
+    @doc.root.elements['records'].add record  
+
+    load_records
+  end
+
+  def update(id, params={})
+    record_name, fields = capture_fields(params)
+    
+    # for each field update each record field
+    record = XPath.first(@doc.root, "records/#{record_name}[@id=#{id.to_s}]")
+    fields.each {|k,v| record.elements[k.to_s].text = v if v}
+    load_records
+  end
+
+  def delete(id)        
+    node = XPath.first(@doc.root, "records/*[@id='#{id}']")
+    node.parent.delete node        
+    load_records
+  end
+
   private
+
+  def capture_fields(params)
+
+    record_name, raw_fields = @schema.match(/(\w+)\(([^\)]+)/).captures
+    fields = Hash[raw_fields.split(',').map{|x| [x.strip.to_sym, nil]}]
+
+    fields.keys.each {|key| fields[key] = params[key] if params.has_key? key}      
+    [record_name, fields]
+  end
+
   
   def display_xml
     
@@ -127,20 +177,43 @@ EOF
         XPath.first(@doc.root, 'records/*[1]/*[1]').name).to_s.to_sym
 
     @summary = summary_to_h    
-    @records = records_to_h
+    @schema = @doc.root.text('summary/schema').to_s
+    load_records
     @root_name = @doc.root.name
     @item_name = XPath.first(@doc.root, 'records/*[1]').name    
   end  
+
+  def load_records
+    @records = records_to_h
+    @flat_records = flat_records_to_h
+  end
 
   def display()
     puts @doc.to_s
   end
 
+  def flat_records_to_h
+    XPath.match(@doc.root, 'records/*').map do |row|
+      XPath.match(row, '*').inject({}) do |r,node|
+        r[node.name.to_s.to_sym] = node.text.to_s
+        r
+      end
+    end
+  end
+
   def records_to_h()
-    ah = XPath.match(@doc.root, 'records/*').each_with_index.map do |row,i|
-      created = Time.now.to_s; id = Time.now.strftime("%Y%m%I%H%M%S") + i.to_s
+    i = XPath.match(@doc.root, 'records/*/attribute::id').max_by(&:value).to_s.to_i
+    
+    ah = XPath.match(@doc.root, 'records/*').map do |row|
+      
+      created = Time.now.to_s
       last_modified = ''
-      id = row.attribute('id').value.to_s if row.attribute('id')
+      
+      if row.attribute('id') then
+        id = row.attribute('id').value.to_s 
+      else
+        i += 1; id = i.to_s
+      end
       created = row.attribute('created').value.to_s if row.attribute('created')
       last_modified = row.attribute('last_modified').value.to_s if row.attribute('last_modified')
       body = XPath.match(row, '*').inject({}) do |r,node|
@@ -161,3 +234,4 @@ EOF
   end
 
 end
+

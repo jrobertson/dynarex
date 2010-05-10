@@ -1,11 +1,13 @@
 #!/usr/bin/ruby
 
+# file: dynarex.rb
+
 require 'rexml/document'
 require 'nokogiri'
 require 'open-uri'
 require 'builder'
 
-class Dynarex
+class Dynarexx
   include REXML 
 
   def initialize(location)
@@ -18,6 +20,10 @@ class Dynarex
 
   def records
     @records
+  end
+  
+  def flat_records
+    @flat_records
   end
   
   def to_s
@@ -92,7 +98,48 @@ EOF
     self
   end  
 
+  def create(params={})
+
+    record_name, fields = capture_fields(params)
+    record = Element.new record_name
+    fields.each{|k,v| record.add Element.new(k.to_s).add_text(v) if v}
+
+    ids = XPath.match(@doc.root,'records/*/attribute::id').map &:value
+    id = ids.empty? ? 1 : ids.max.succ
+
+    attributes = {id: id, created: Time.now.to_s, last_modified: nil}
+    attributes.each {|k,v| record.add_attribute(k.to_s, v)}
+    @doc.root.elements['records'].add record  
+
+    load_records
+  end
+
+  def update(id, params={})
+    record_name, fields = capture_fields(params)
+    
+    # for each field update each record field
+    record = XPath.first(@doc.root, "records/#{record_name}[@id=#{id.to_s}]")
+    fields.each {|k,v| record.elements[k.to_s].text = v if v}
+    load_records
+  end
+
+  def delete(id)        
+    node = XPath.first(@doc.root, "records/*[@id='#{id}']")
+    node.parent.delete node        
+    load_records
+  end
+
   private
+
+  def capture_fields(params)
+
+    record_name, raw_fields = @schema.match(/(\w+)\(([^\)]+)/).captures
+    fields = Hash[raw_fields.split(',').map{|x| [x.strip.to_sym, nil]}]
+
+    fields.keys.each {|key| fields[key] = params[key] if params.has_key? key}      
+    [record_name, fields]
+  end
+
   
   def display_xml
     
@@ -130,13 +177,28 @@ EOF
         XPath.first(@doc.root, 'records/*[1]/*[1]').name).to_s.to_sym
 
     @summary = summary_to_h    
-    @records = records_to_h
+    @schema = @doc.root.text('summary/schema').to_s
+    load_records
     @root_name = @doc.root.name
     @item_name = XPath.first(@doc.root, 'records/*[1]').name    
   end  
 
+  def load_records
+    @records = records_to_h
+    @flat_records = flat_records_to_h
+  end
+
   def display()
     puts @doc.to_s
+  end
+
+  def flat_records_to_h
+    XPath.match(@doc.root, 'records/*').map do |row|
+      XPath.match(row, '*').inject({}) do |r,node|
+        r[node.name.to_s.to_sym] = node.text.to_s
+        r
+      end
+    end
   end
 
   def records_to_h()
@@ -172,3 +234,4 @@ EOF
   end
 
 end
+
