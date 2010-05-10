@@ -154,7 +154,7 @@ EOF
       end
       xml.records do
         @records.each do |k, item|
-          xml.send(@item_name, id: item[:id], created: item[:created], \
+          xml.send(@record_name, id: item[:id], created: item[:created], \
               last_modified: item[:last_modified]) do
             item[:body].each{|name,value| xml.send name, value}
           end
@@ -198,18 +198,22 @@ EOF
     else # local file
       buffer = File.open(s,'r').read
     end
-    @doc = Document.new buffer
-    @default_key = (XPath.first(@doc.root, 'summary/default_key/text()') || \
-        XPath.first(@doc.root, 'records/*[1]/*[1]').name).to_s.to_sym
 
-    @summary = summary_to_h    
+    @doc = Document.new buffer
     @schema = @doc.root.text('summary/schema').to_s
-    load_records
     @root_name = @doc.root.name
-    @item_name = XPath.first(@doc.root, 'records/*[1]').name    
+    @summary = summary_to_h    
+    @default_key = XPath.first(@doc.root, 'summary/default_key/text()')
+
+    if XPath.match(@doc.root, 'records/*').length > 0 then
+
+      load_records
+    end    
   end  
 
   def load_records
+    @default_key = (XPath.first(@doc.root, 'records/*[1]/*[1]').name).to_s.to_sym unless @default_key
+    @record_name = XPath.first(@doc.root, 'records/*[1]').name
     @records = records_to_h
     @flat_records = flat_records_to_h
   end
