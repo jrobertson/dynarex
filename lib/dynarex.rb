@@ -102,7 +102,11 @@ EOF
 
     record_name, fields = capture_fields(params)
     record = Element.new record_name
-    fields.each{|k,v| record.add Element.new(k.to_s).add_text(v) if v}
+    fields.each do |k,v|
+      element = Element.new(k.to_s)       
+      element.text = v if v
+      record.add element
+    end
 
     ids = XPath.match(@doc.root,'records/*/attribute::id').map &:value
     id = ids.empty? ? 1 : ids.max.succ
