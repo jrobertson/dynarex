@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 
-# file: dynarexx.rb
+# file: dynarex.rb
 
 require 'rexml/document'
 require 'nokogiri'

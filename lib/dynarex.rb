@@ -7,7 +7,7 @@ require 'nokogiri'
 require 'open-uri'
 require 'builder'
 
-class Dynarexx
+class Dynarex
   include REXML 
 
   def initialize(location)
