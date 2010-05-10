@@ -120,6 +120,8 @@ EOF
     # for each field update each record field
     record = XPath.first(@doc.root, "records/#{record_name}[@id=#{id.to_s}]")
     fields.each {|k,v| record.elements[k.to_s].text = v if v}
+    record.add_attribute('last_modified', Time.now.to_s)
+
     load_records
   end
 
