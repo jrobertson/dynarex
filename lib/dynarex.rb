@@ -157,10 +157,12 @@ EOF
         @summary.each{|key,value| xml.send key, value}
       end
       xml.records do
-        @records.each do |k, item|
-          xml.send(@record_name, id: item[:id], created: item[:created], \
-              last_modified: item[:last_modified]) do
-            item[:body].each{|name,value| xml.send name, value}
+        if @records then
+          @records.each do |k, item|
+            xml.send(@record_name, id: item[:id], created: item[:created], \
+                last_modified: item[:last_modified]) do
+              item[:body].each{|name,value| xml.send name, value}
+            end
           end
         end
       end
