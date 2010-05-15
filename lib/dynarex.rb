@@ -117,6 +117,17 @@ EOF
 
     load_records
   end
+  
+  def create_from_line(line)
+    format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
+    t = format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
+    line.match(/#{t}/).captures
+    
+    a = line.match(/#{t}/).captures
+    fields = format_mask.scan(/\[!(\w+)\]/).flatten.map(&:to_sym)   
+    h = Hash[fields.zip(a)]
+    create h
+  end
 
   def update(id, params={})
     record_name, fields = capture_fields(params)
@@ -191,6 +202,11 @@ EOF
       end
       xml.records
     end
+    
+    @default_key = fields[0]
+    @records = {}
+    @flat_records = {}
+    
     buffer
   end
 

@@ -117,6 +117,17 @@ EOF
 
     load_records
   end
+  
+  def create_from_line(line)
+    format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
+    t = format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
+    line.match(/#{t}/).captures
+    
+    a = line.match(/#{t}/).captures
+    fields = format_mask.scan(/\[!(\w+)\]/).flatten.map(&:to_sym)   
+    h = Hash[fields.zip(a)]
+    create h
+  end
 
   def update(id, params={})
     record_name, fields = capture_fields(params)
@@ -157,10 +168,12 @@ EOF
         @summary.each{|key,value| xml.send key, value}
       end
       xml.records do
-        @records.each do |k, item|
-          xml.send(@record_name, id: item[:id], created: item[:created], \
-              last_modified: item[:last_modified]) do
-            item[:body].each{|name,value| xml.send name, value}
+        if @records then
+          @records.each do |k, item|
+            xml.send(@record_name, id: item[:id], created: item[:created], \
+                last_modified: item[:last_modified]) do
+              item[:body].each{|name,value| xml.send name, value}
+            end
           end
         end
       end
@@ -189,6 +202,9 @@ EOF
       end
       xml.records
     end
+    
+    @default_key = fields[0]
+    
     buffer
   end
 
