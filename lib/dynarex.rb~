@@ -67,12 +67,13 @@ EOF
     t = format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
     lines = buffer.split(/\r?\n|\r(?!\n)/).map {|x|x.match(/#{t}/).captures}
     fields = format_mask.scan(/\[!(\w+)\]/).flatten.map(&:to_sym)
+    @default_key ||= fields[0]
     
     a = lines.map do|x| 
       created = Time.now.to_s
       
       h = Hash[fields.zip(x)]
-      [h[@default_key], {id: '', created: created, last_modified: '', body: h}]
+      [h[@default_key.to_s.to_sym], {id: '', created: created, last_modified: '', body: h}]
     end
     
     h2 = Hash[a]
@@ -204,6 +205,9 @@ EOF
     end
     
     @default_key = fields[0]
+    @record_name = record_name
+    @records = {}
+    @flat_records = {}
     
     buffer
   end
