@@ -10,21 +10,36 @@ require 'builder'
 class Dynarex
   include REXML 
 
+#Create a new dynarex document from 1 of the following options:
+#* a local file path
+#* a URL
+#* a schema string
+#    Dynarex.new 'contacts[title,description]/contact(name,age,dob)'
+#* an XML string
+#    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
+
   def initialize(location)
     open(location)
   end
 
+# Returns the hash representation of the document summary.
+  
   def summary
     @summary
   end
 
+#Return a Hash (which can be edited) containing all records.
+  
   def records
     @records
   end
   
+#Returns a ready-only snapshot of records as a simple Hash.  
   def flat_records
     @flat_records
   end
+  
+# Returns all records as a string format specified by the summary format_mask field.  
   
   def to_s
 xsl_buffer =<<EOF
@@ -56,24 +71,27 @@ EOF
     display_xml()
   end
   
+#Save the document to a local file.  
+  
   def save(filepath)    
     xml = display_xml()
     File.open(filepath,'w'){|f| f.write xml}
   end
   
+#Parses 1 or more lines of text to create or update existing records.
+
   def parse(buffer)
     i = XPath.match(@doc.root, 'records/*/attribute::id').max_by(&:value).to_s.to_i
     format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
     t = format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
     lines = buffer.split(/\r?\n|\r(?!\n)/).map {|x|x.match(/#{t}/).captures}
     fields = format_mask.scan(/\[!(\w+)\]/).flatten.map(&:to_sym)
-    @default_key ||= fields[0]
     
     a = lines.map do|x| 
       created = Time.now.to_s
       
       h = Hash[fields.zip(x)]
-      [h[@default_key.to_s.to_sym], {id: '', created: created, last_modified: '', body: h}]
+      [h[@default_key], {id: '', created: created, last_modified: '', body: h}]
     end
     
     h2 = Hash[a]
@@ -98,6 +116,10 @@ EOF
     h.each {|key, item| h.delete(key) if not h2.has_key? key}
     self
   end  
+  
+#Create a record from a hash containing the field name, and the field value.
+#  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
+#  dynarex.create name: Bob, age: 52
 
   def create(params={})
 
@@ -117,7 +139,12 @@ EOF
     @doc.root.elements['records'].add record  
 
     load_records
+    self
   end
+  
+#Create a record from a string, given the dynarex document contains a format mask.
+#  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
+#  dynarex.create_from_line 'Tracy 37 15-Jun-1972'  
   
   def create_from_line(line)
     format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
@@ -128,8 +155,12 @@ EOF
     fields = format_mask.scan(/\[!(\w+)\]/).flatten.map(&:to_sym)   
     h = Hash[fields.zip(a)]
     create h
+    self
   end
 
+#Updates a record from an id and a hash containing field name and field value.
+#  dynarex.update 4, name: Jeff, age: 38  
+  
   def update(id, params={})
     record_name, fields = capture_fields(params)
     
@@ -139,12 +170,17 @@ EOF
     record.add_attribute('last_modified', Time.now.to_s)
 
     load_records
+    self
   end
 
+#Delete a record.
+#  dyarex.delete 3      # deletes record with id 3
+  
   def delete(id)        
     node = XPath.first(@doc.root, "records/*[@id='#{id}']")
     node.parent.delete node        
     load_records
+    self
   end
 
   private
@@ -205,7 +241,6 @@ EOF
     end
     
     @default_key = fields[0]
-    @record_name = record_name
     @records = {}
     @flat_records = {}
     
@@ -246,6 +281,8 @@ EOF
     puts @doc.to_s
   end
 
+#Returns a ready-only snapshot of records as a simple Hash.
+  
   def flat_records_to_h
     XPath.match(@doc.root, 'records/*').map do |row|
       XPath.match(row, '*').inject({}) do |r,node|

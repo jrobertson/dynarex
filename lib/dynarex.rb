@@ -21,7 +21,11 @@ class Dynarex
   def initialize(location)
     open(location)
   end
-
+  
+  def fields
+    @fields
+  end
+     
 # Returns the hash representation of the document summary.
   
   def summary
@@ -121,26 +125,15 @@ EOF
 #  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
 #  dynarex.create name: Bob, age: 52
 
-  def create(params={})
-
-    record_name, fields = capture_fields(params)
-    record = Element.new record_name
-    fields.each do |k,v|
-      element = Element.new(k.to_s)       
-      element.text = v if v
-      record.add element
-    end
-
-    ids = XPath.match(@doc.root,'records/*/attribute::id').map &:value
-    id = ids.empty? ? 1 : ids.max.succ
-
-    attributes = {id: id, created: Time.now.to_s, last_modified: nil}
-    attributes.each {|k,v| record.add_attribute(k.to_s, v)}
-    @doc.root.elements['records'].add record  
+  def create(arg)
+    methods = {Hash: :hash_create, String: :create_from_line}
+    send (methods[arg.class.to_s.to_sym]), arg
 
     load_records
     self
   end
+
+
   
 #Create a record from a string, given the dynarex document contains a format mask.
 #  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
@@ -162,11 +155,11 @@ EOF
 #  dynarex.update 4, name: Jeff, age: 38  
   
   def update(id, params={})
-    record_name, fields = capture_fields(params)
+    fields = capture_fields(params)
     
     # for each field update each record field
-    record = XPath.first(@doc.root, "records/#{record_name}[@id=#{id.to_s}]")
-    fields.each {|k,v| record.elements[k.to_s].text = v if v}
+    record = XPath.first(@doc.root, "records/#{@record_name}[@id=#{id.to_s}]")
+    @fields.each {|k,v| record.elements[k.to_s].text = v if v}
     record.add_attribute('last_modified', Time.now.to_s)
 
     load_records
@@ -184,14 +177,28 @@ EOF
   end
 
   private
+  
+  def hash_create(params={})
+    fields = capture_fields(params)
+    record = Element.new @record_name
+    fields.each do |k,v|
+      element = Element.new(k.to_s)       
+      element.text = v if v
+      record.add element
+    end
+
+    ids = XPath.match(@doc.root,'records/*/attribute::id').map &:value
+    id = ids.empty? ? 1 : ids.max.succ
+
+    attributes = {id: id, created: Time.now.to_s, last_modified: nil}
+    attributes.each {|k,v| record.add_attribute(k.to_s, v)}
+    @doc.root.elements['records'].add record      
+  end
 
   def capture_fields(params)
-
-    record_name, raw_fields = @schema.match(/(\w+)\(([^\)]+)/).captures
-    fields = Hash[raw_fields.split(',').map{|x| [x.strip.to_sym, nil]}]
-
+    fields = @fields.clone
     fields.keys.each {|key| fields[key] = params[key] if params.has_key? key}      
-    [record_name, fields]
+    fields
   end
 
   
@@ -247,6 +254,15 @@ EOF
     buffer
   end
 
+  def attach_record_methods()
+    @fields.keys.each do |field|
+      self.instance_eval(
+%Q(def find_by_#{field}(s)
+ Hash[@fields.keys.zip(XPath.match(@doc.root, "records/*[#{field}='\#{s}']/*/text()").map &:to_s)]
+end))
+    end    
+  end
+  
   def open(s)
     if s[/\(/] then  # schema
       buffer = dynarex_new s
@@ -263,7 +279,14 @@ EOF
     @root_name = @doc.root.name
     @summary = summary_to_h    
     @default_key = XPath.first(@doc.root, 'summary/default_key/text()')
+    
+    @record_name, raw_fields = @schema.match(/(\w+)\(([^\)]+)/).captures
+    @fields = Hash[raw_fields.split(',').map{|x| [x.strip.to_sym, nil]}]
 
+    
+    # load the record query handler methods
+    attach_record_methods
+    
     if XPath.match(@doc.root, 'records/*').length > 0 then
 
       load_records
