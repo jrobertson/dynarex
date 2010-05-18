@@ -86,15 +86,13 @@ EOF
 
   def parse(buffer)
     i = XPath.match(@doc.root, 'records/*/attribute::id').max_by(&:value).to_s.to_i
-    format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
-    t = format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
+    t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
     lines = buffer.split(/\r?\n|\r(?!\n)/).map {|x|x.match(/#{t}/).captures}
-    fields = format_mask.scan(/\[!(\w+)\]/).flatten.map(&:to_sym)
-    
+
     a = lines.map do|x| 
       created = Time.now.to_s
       
-      h = Hash[fields.zip(x)]
+      h = Hash[@fields.zip(x)]
       [h[@default_key], {id: '', created: created, last_modified: '', body: h}]
     end
     
@@ -125,9 +123,9 @@ EOF
 #  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
 #  dynarex.create name: Bob, age: 52
 
-  def create(arg)
+  def create(arg, id=nil)
     methods = {Hash: :hash_create, String: :create_from_line}
-    send (methods[arg.class.to_s.to_sym]), arg
+    send (methods[arg.class.to_s.to_sym]), arg, id
 
     load_records
     self
@@ -139,14 +137,12 @@ EOF
 #  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
 #  dynarex.create_from_line 'Tracy 37 15-Jun-1972'  
   
-  def create_from_line(line)
-    format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
-    t = format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
+  def create_from_line(line, id=nil)
+    t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
     line.match(/#{t}/).captures
     
     a = line.match(/#{t}/).captures
-    fields = format_mask.scan(/\[!(\w+)\]/).flatten.map(&:to_sym)   
-    h = Hash[fields.zip(a)]
+    h = Hash[@fields.zip(a)]
     create h
     self
   end
@@ -159,7 +155,7 @@ EOF
     
     # for each field update each record field
     record = XPath.first(@doc.root, "records/#{@record_name}[@id=#{id.to_s}]")
-    @fields.each {|k,v| record.elements[k.to_s].text = v if v}
+    fields.each {|k,v| record.elements[k.to_s].text = v if v}
     record.add_attribute('last_modified', Time.now.to_s)
 
     load_records
@@ -178,7 +174,7 @@ EOF
 
   private
   
-  def hash_create(params={})
+  def hash_create(params={}, id=nil)
     fields = capture_fields(params)
     record = Element.new @record_name
     fields.each do |k,v|
@@ -187,8 +183,8 @@ EOF
       record.add element
     end
 
-    ids = XPath.match(@doc.root,'records/*/attribute::id').map &:value
-    id = ids.empty? ? 1 : ids.max.succ
+    ids = XPath.match(@doc.root,'records/*/attribute::id').map {|x| x.value.to_i}
+    id = ids.empty? ? (id || 1) : ids.max.succ
 
     attributes = {id: id, created: Time.now.to_s, last_modified: nil}
     attributes.each {|k,v| record.add_attribute(k.to_s, v)}
@@ -196,7 +192,7 @@ EOF
   end
 
   def capture_fields(params)
-    fields = @fields.clone
+    fields = Hash[@fields.map {|x| [x,nil]}]
     fields.keys.each {|key| fields[key] = params[key] if params.has_key? key}      
     fields
   end
@@ -247,7 +243,6 @@ EOF
       xml.records
     end
     
-    @default_key = fields[0]
     @records = {}
     @flat_records = {}
     
@@ -255,10 +250,10 @@ EOF
   end
 
   def attach_record_methods()
-    @fields.keys.each do |field|
+    @fields.each do |field|
       self.instance_eval(
 %Q(def find_by_#{field}(s)
- Hash[@fields.keys.zip(XPath.match(@doc.root, "records/*[#{field}='\#{s}']/*/text()").map &:to_s)]
+ Hash[@fields.zip(XPath.match(@doc.root, "records/*[#{field}='\#{s}']/*/text()").map &:to_s)]
 end))
     end    
   end
@@ -275,27 +270,33 @@ end))
     end
 
     @doc = Document.new buffer
-    @schema = @doc.root.text('summary/schema').to_s
+    @schema = @doc.root.text('summary/schema')
     @root_name = @doc.root.name
     @summary = summary_to_h    
     @default_key = XPath.first(@doc.root, 'summary/default_key/text()')
-    
-    @record_name, raw_fields = @schema.match(/(\w+)\(([^\)]+)/).captures
-    @fields = Hash[raw_fields.split(',').map{|x| [x.strip.to_sym, nil]}]
+    @format_mask = XPath.first(@doc.root, 'summary/format_mask/text()')
+   
+    @fields = @format_mask.to_s.scan(/\[!(\w+)\]/).flatten.map(&:to_sym) if @format_mask 
 
-    
-    # load the record query handler methods
-    attach_record_methods
+    if @schema then
+      @record_name, raw_fields = @schema.match(/(\w+)\(([^\)]+)/).captures
+      @fields = raw_fields.split(',').map{|x| x.strip.to_sym} unless @fields      
+    end
+
+    if @fields then
+      @default_key = @fields[0] unless @default_key     
+      # load the record query handler methods
+      attach_record_methods
+    end
     
     if XPath.match(@doc.root, 'records/*').length > 0 then
+      @record_name = XPath.first(@doc.root, 'records/*[1]').name      
+      load_records 
+    end
 
-      load_records
-    end    
   end  
 
   def load_records
-    @default_key = (XPath.first(@doc.root, 'records/*[1]/*[1]').name).to_s.to_sym unless @default_key
-    @record_name = XPath.first(@doc.root, 'records/*[1]').name
     @records = records_to_h
     @flat_records = flat_records_to_h
   end
@@ -334,6 +335,7 @@ end))
         r[node.name.to_s.to_sym] = node.text.to_s
         r
       end
+
       [body[@default_key],{id: id, created: created, last_modified: \
           last_modified, body: body}]
     end
