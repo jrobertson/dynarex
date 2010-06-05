@@ -43,6 +43,7 @@ class Dynarex
     @flat_records
   end
   
+  alias to_h flat_records
 # Returns all records as a string format specified by the summary format_mask field.  
   
   def to_s

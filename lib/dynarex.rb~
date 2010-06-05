@@ -93,7 +93,7 @@ EOF
       created = Time.now.to_s
       
       h = Hash[@fields.zip(x)]
-      [h[@default_key.to_s], {id: '', created: created, last_modified: '', body: h}]
+      [h[@default_key], {id: '', created: created, last_modified: '', body: h}]
     end
     
     h2 = Hash[a]
@@ -123,9 +123,9 @@ EOF
 #  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
 #  dynarex.create name: Bob, age: 52
 
-  def create(arg)
+  def create(arg, id=nil)
     methods = {Hash: :hash_create, String: :create_from_line}
-    send (methods[arg.class.to_s.to_sym]), arg
+    send (methods[arg.class.to_s.to_sym]), arg, id
 
     load_records
     self
@@ -137,7 +137,7 @@ EOF
 #  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
 #  dynarex.create_from_line 'Tracy 37 15-Jun-1972'  
   
-  def create_from_line(line)
+  def create_from_line(line, id=nil)
     t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
     line.match(/#{t}/).captures
     
@@ -174,7 +174,7 @@ EOF
 
   private
   
-  def hash_create(params={})
+  def hash_create(params={}, id=nil)
     fields = capture_fields(params)
     record = Element.new @record_name
     fields.each do |k,v|
@@ -183,8 +183,8 @@ EOF
       record.add element
     end
 
-    ids = XPath.match(@doc.root,'records/*/attribute::id').map &:value
-    id = ids.empty? ? 1 : (ids.max + 1).to_s
+    ids = XPath.match(@doc.root,'records/*/attribute::id').map {|x| x.value.to_i}
+    id = ids.empty? ? (id || 1) : ids.max.succ
 
     attributes = {id: id, created: Time.now.to_s, last_modified: nil}
     attributes.each {|k,v| record.add_attribute(k.to_s, v)}
