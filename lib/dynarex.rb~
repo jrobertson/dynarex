@@ -43,6 +43,8 @@ class Dynarex
     @flat_records
   end
   
+  alias to_h flat_records
+  
 # Returns all records as a string format specified by the summary format_mask field.  
   
   def to_s
@@ -168,6 +170,17 @@ EOF
   def delete(id)        
     node = XPath.first(@doc.root, "records/*[@id='#{id}']")
     node.parent.delete node        
+    load_records
+    self
+  end
+  
+  def sort_by!(&element_blk)
+    a = XPath.match(@doc.root, 'records/*').sort_by &element_blk
+    records = XPath.first(@doc.root, 'records')
+    records.parent.delete records
+    records = Element.new 'records'
+    a.each {|record| records.add record}
+    @doc.root.add records
     load_records
     self
   end

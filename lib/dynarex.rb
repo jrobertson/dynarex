@@ -44,6 +44,7 @@ class Dynarex
   end
   
   alias to_h flat_records
+  
 # Returns all records as a string format specified by the summary format_mask field.  
   
   def to_s
@@ -78,7 +79,8 @@ EOF
   
 #Save the document to a local file.  
   
-  def save(filepath)    
+  def save(filepath=nil)
+    filepath ||= @local_filepath
     xml = display_xml()
     File.open(filepath,'w'){|f| f.write xml}
   end
@@ -172,6 +174,18 @@ EOF
     load_records
     self
   end
+  
+  def sort_by!(&element_blk)
+    refresh_doc
+    a = XPath.match(@doc.root, 'records/*').sort_by &element_blk
+    records = XPath.first(@doc.root, 'records')
+    records.parent.delete records
+    records = Element.new 'records'
+    a.each {|record| records.add record}
+    @doc.root.add records
+    load_records
+    self
+  end
 
   private
   
@@ -184,8 +198,10 @@ EOF
       record.add element
     end
 
-    ids = XPath.match(@doc.root,'records/*/attribute::id').map {|x| x.value.to_i}
-    id = ids.empty? ? (id || 1) : ids.max.succ
+    unless id
+      ids = XPath.match(@doc.root,'records/*/attribute::id').map {|x| x.value.to_i}
+      id = ids.empty? ? (id || 1) : ids.max.succ
+    end
 
     attributes = {id: id, created: Time.now.to_s, last_modified: nil}
     attributes.each {|k,v| record.add_attribute(k.to_s, v)}
@@ -220,9 +236,12 @@ EOF
       end
     end
 
+    @doc = Document.new buffer
     buffer
 
   end
+
+  alias refresh_doc display_xml
 
   def dynarex_new(s)
     ptrn = %r((\w+)\[?([^\]]+)?\]?\/(\w+)\(([^\)]+)\))
@@ -267,6 +286,7 @@ end))
     elsif s[/\</] # xml
       buffer = s
     else # local file
+      @local_filepath = s
       buffer = File.open(s,'r').read
     end
 
