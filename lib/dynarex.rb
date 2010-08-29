@@ -6,6 +6,7 @@ require 'rexml/document'
 require 'nokogiri'
 require 'open-uri'
 require 'builder'
+require 'ostruct'
 
 class Dynarex
   include REXML 
@@ -185,6 +186,11 @@ EOF
     @doc.root.add records
     load_records
     self
+  end
+  
+  def record(id)
+    h = Hash[*XPath.match(@doc.root, "records/*[@id='#{id}']/*").map {|x| [x.name, x.text]}.flatten]
+    OpenStruct.new h    
   end
 
   private
