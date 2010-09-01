@@ -192,6 +192,10 @@ EOF
     h = Hash[*XPath.match(@doc.root, "records/*[@id='#{id}']/*").map {|x| [x.name, x.text]}.flatten]
     OpenStruct.new h    
   end
+  
+  def record_exists?(id)
+    XPath.first(@doc.root, "records/*[@id='#{id}']").nil? ? false : true
+  end
 
   private
   
