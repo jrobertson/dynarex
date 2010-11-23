@@ -11,7 +11,7 @@ require 'ostruct'
 class Dynarex
   include REXML 
 
-  attr_accessor :format_mask, :delimiter
+  attr_accessor :format_mask, :delimiter, :schema
   
 #Create a new dynarex document from 1 of the following options:
 #* a local file path
@@ -21,9 +21,9 @@ class Dynarex
 #* an XML string
 #    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
 
-  def initialize(location)
+  def initialize(location=nil)
     @delimiter = ' '
-    open(location)
+    open(location) if location
   end
 
   def delimiter=(separator)
@@ -40,6 +40,10 @@ class Dynarex
     @summary[:format_mask] = @format_mask
   end
      
+  def schema=(s)
+    open s
+  end
+
 # Returns the hash representation of the document summary.
   
   def summary
@@ -78,6 +82,13 @@ xsl_buffer =<<EOF
 EOF
 
     format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
+dynarex = Dynarex.new
+
+s = %q(schema="companies/company(name, last_contacted, contact)" delimiter=" # ")
+s.split(/(?=\w+\="[^"]+")/)
+raw_a = s.scan(/\w+\="[^"]+"/)
+a = raw_a.map{|x| r = x.split(/=/); [(r[0] + "=").to_sym, r[1][/^"(.*)"$/,1]] }
+a.each{|name, value| dynarex.method(name).call(value)}
 
     xslt_format = format_mask.to_s.gsub(/\s(?=\[!\w+\])/,'<xsl:text> </xsl:text>').gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
     xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
@@ -102,9 +113,18 @@ EOF
 #Parses 1 or more lines of text to create or update existing records.
 
   def parse(buffer)
+
+    raw_header = buffer.slice!(/<\?dynarex[^>]+>/)
+
+    if raw_header then
+      header = raw_header[/<?dynarex (.*)?>/,1]
+      header.scan(/\w+\="[^"]+\"/).map{|x| r = x.split(/=/); [(r[0] + "=").to_sym, r[1][/^"(.*)"$/,1]] }.each {|name, value|      self.method(name).call(value)}
+    end
+
     i = XPath.match(@doc.root, 'records/*/attribute::id').max_by(&:value).to_s.to_i
     t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
-    lines = buffer.split(/\r?\n|\r(?!\n)/).map {|x|x.match(/#{t}/).captures}
+
+    lines = buffer.strip.split(/\r?\n|\r(?!\n)/).map {|x|x.match(/#{t}/).captures}
 
     a = lines.map do|x| 
       created = Time.now.to_s
@@ -267,6 +287,7 @@ EOF
   alias refresh_doc display_xml
 
   def dynarex_new(s)
+    @schema = s
     ptrn = %r((\w+)\[?([^\]]+)?\]?\/(\w+)\(([^\)]+)\))
     root_name, raw_summary, record_name, raw_fields = s.match(ptrn).captures
     summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}  
