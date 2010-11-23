@@ -6,6 +6,7 @@ require 'rexml/document'
 require 'nokogiri'
 require 'open-uri'
 require 'builder'
+require 'ostruct'
 
 class Dynarex
   include REXML 
@@ -79,7 +80,8 @@ EOF
   
 #Save the document to a local file.  
   
-  def save(filepath)    
+  def save(filepath=nil)
+    filepath ||= @local_filepath
     xml = display_xml()
     File.open(filepath,'w'){|f| f.write xml}
   end
@@ -175,6 +177,7 @@ EOF
   end
   
   def sort_by!(&element_blk)
+    refresh_doc
     a = XPath.match(@doc.root, 'records/*').sort_by &element_blk
     records = XPath.first(@doc.root, 'records')
     records.parent.delete records
@@ -183,6 +186,15 @@ EOF
     @doc.root.add records
     load_records
     self
+  end
+  
+  def record(id)
+    h = Hash[*XPath.match(@doc.root, "records/*[@id='#{id}']/*").map {|x| [x.name, x.text]}.flatten]
+    OpenStruct.new h    
+  end
+  
+  def record_exists?(id)
+    XPath.first(@doc.root, "records/*[@id='#{id}']").nil? ? false : true
   end
 
   private
@@ -196,8 +208,10 @@ EOF
       record.add element
     end
 
-    ids = XPath.match(@doc.root,'records/*/attribute::id').map {|x| x.value.to_i}
-    id = ids.empty? ? (id || 1) : ids.max.succ
+    unless id
+      ids = XPath.match(@doc.root,'records/*/attribute::id').map {|x| x.value.to_i}
+      id = ids.empty? ? (id || 1) : ids.max.succ
+    end
 
     attributes = {id: id, created: Time.now.to_s, last_modified: nil}
     attributes.each {|k,v| record.add_attribute(k.to_s, v)}
@@ -232,9 +246,12 @@ EOF
       end
     end
 
+    @doc = Document.new buffer
     buffer
 
   end
+
+  alias refresh_doc display_xml
 
   def dynarex_new(s)
     ptrn = %r((\w+)\[?([^\]]+)?\]?\/(\w+)\(([^\)]+)\))
@@ -279,6 +296,7 @@ end))
     elsif s[/\</] # xml
       buffer = s
     else # local file
+      @local_filepath = s
       buffer = File.open(s,'r').read
     end
 
