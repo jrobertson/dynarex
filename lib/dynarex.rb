@@ -11,7 +11,7 @@ require 'ostruct'
 class Dynarex
   include REXML 
 
-  attr_accessor :format_mask
+  attr_accessor :format_mask, :delimiter
   
 #Create a new dynarex document from 1 of the following options:
 #* a local file path
@@ -22,7 +22,13 @@ class Dynarex
 #    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
 
   def initialize(location)
+    @delimiter = ' '
     open(location)
+  end
+
+  def delimiter=(separator)
+    @format_mask = @format_mask.to_s.gsub(/\s/, separator)
+    @summary[:format_mask] = @format_mask
   end
   
   def fields

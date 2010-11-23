@@ -11,6 +11,8 @@ require 'ostruct'
 class Dynarex
   include REXML 
 
+  attr_accessor :format_mask
+  
 #Create a new dynarex document from 1 of the following options:
 #* a local file path
 #* a URL
@@ -25,6 +27,11 @@ class Dynarex
   
   def fields
     @fields
+  end
+
+  def format_mask=(s)
+    @format_mask = s
+    @summary[:format_mask] = @format_mask
   end
      
 # Returns the hash representation of the document summary.
@@ -51,7 +58,7 @@ class Dynarex
   def to_s
 xsl_buffer =<<EOF
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
-<xsl:output encoding="UTF-8"
+<xsl:output encoding="UTF-8"display_xml
             method="text"
             indent="no"
             omit-xml-declaration="yes"/>
@@ -74,7 +81,7 @@ EOF
     out.text
   end
   
-  def to_xml
+  def to_xml  
     display_xml()
   end
   
@@ -381,4 +388,3 @@ end))
   end
 
 end
-

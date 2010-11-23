@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'dynarex'
-  s.version = '0.9.2'
+  s.version = '0.9.3'
   s.summary = 'dynarex'
   s.files = Dir['lib/**/*.rb']
 end
