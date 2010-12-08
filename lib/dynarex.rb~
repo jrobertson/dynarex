@@ -409,7 +409,7 @@ end))
         r.merge node.name.to_sym => node.text
       end
 
-      result.merge body[@default_key] => {id: id, created: created, last_modified: last_modified, body: body}
+      result.merge body[@default_key.to_sym] => {id: id, created: created, last_modified: last_modified, body: body}
     end
 
   end
