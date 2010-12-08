@@ -384,7 +384,7 @@ end))
   def flat_records_to_h
     @doc.xpath('records/*').map do |row|
       row.xpath('*').inject({}) do |r,node|
-        r.merge node.name.to_s.to_sym => node.text
+        r.merge node.name.to_sym => node.text
       end
     end
   end
@@ -406,10 +406,10 @@ end))
       created = row.attributes['created'] if row.attributes['created']
       last_modified = row.attributes['last_modified'] if row.attributes['last_modified']
       body = row.xpath('*').inject({}) do |r,node|
-        r.merge node.name.to_s => node.text
+        r.merge node.name.to_sym => node.text
       end
 
-      result.merge body[@default_key] => {id: id, created: created, last_modified: last_modified, body: body}
+      result.merge body[@default_key.to_sym] => {id: id, created: created, last_modified: last_modified, body: body}
     end
 
   end
