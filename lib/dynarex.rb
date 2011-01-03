@@ -25,6 +25,10 @@ class Dynarex
     open(location) if location
   end
 
+  def add(x)
+    @doc.add x
+  end
+
   def delimiter=(separator)
     @format_mask = @format_mask.to_s.gsub(/\s/, separator)
     @summary[:format_mask] = @format_mask
@@ -63,7 +67,11 @@ class Dynarex
   alias to_h flat_records
   
 # Returns all records as a string format specified by the summary format_mask field.  
-  
+
+  def to_doc  
+    @doc
+  end
+
   def to_s
 xsl_buffer =<<EOF
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
@@ -155,6 +163,8 @@ EOF
     end    
     
     h.each {|key, item| h.delete(key) if not h2.has_key? key}
+    refresh_doc
+    #load_records
     self
   end  
   
@@ -205,11 +215,14 @@ EOF
 #  dyarex.delete 3      # deletes record with id 3
   
   def delete(id)        
-    node = @doc.element("records/*[@id='#{id}']")
-    node.parent.delete node        
+    @doc.delete("records/*[@id='#{id}']")
     load_records
     self
   end
+
+  def element(x)
+    @doc.element x
+  end  
   
   def sort_by!(&element_blk)
     refresh_doc
@@ -233,9 +246,14 @@ EOF
     !@doc.element("records/*[@id='#{id}']").nil?
   end
 
+  def xpath(x)
+    @doc.xpath x
+  end
+
   private
   
   def hash_create(params={}, id=nil)
+
     fields = capture_fields(params)
     record = Rexle::Element.new @record_name
     fields.each do |k,v|
@@ -253,6 +271,7 @@ EOF
     attributes.each {|k,v| record.add_attribute(k.to_s, v)}
 
     @doc.element('records').add record            
+
   end
 
   def capture_fields(params)
@@ -329,10 +348,8 @@ end))
   def open(s)
     
     if s.strip[/^</] then # xml
-      puts 'fuh'
       buffer = s
     elsif s[/\(/] # schema
-      puts 'duh'
       buffer = dynarex_new s
     elsif s[/^https?:\/\//] then  # url
       buffer = Kernel.open(s, 'UserAgent' => 'Dynarex-Reader').read
