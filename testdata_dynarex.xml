@@ -1,0 +1,231 @@
+<tests>
+  <summary>
+    <title>dynarex testdata</title>
+    <recordx_type>polyrex</recordx_type>
+    <schema>tests/test[path,description]/io[type,*]</schema>
+    <script>test_dynarex.rb</script>
+  </summary>
+  <records>
+    <test>
+      <summary>
+        <path>1</path>
+        <description>Creating a new document from a schema</description>
+      </summary>
+      <records>
+        <io>
+          <summary>
+            <type>input</type>
+            <schema>contacts/contact(name, telno)</schema>
+          </summary>
+        </io>
+        <io>
+          <summary>
+            <type>output</type>
+            <xml>
+              <![CDATA[
+<?xml version="1.0" encoding="UTF-8"?>
+<contacts>
+  <summary>
+    <recordx_type>dynarex</recordx_type>
+    <format_mask>[!name] [!telno]</format_mask>
+    <schema>contacts/contact(name, telno)</schema>
+  </summary>
+  <records>
+  </records>
+</contacts>
+              ]]>
+            </xml>
+          </summary>
+        </io>
+      </records>
+    </test>
+    <test>
+      <summary>
+        <path>2</path>
+        <description>Creating a new record</description>
+      </summary>
+      <records>
+        <io>
+          <summary>
+            <type>input</type>
+            <schema>contacts/contact(name, telno)</schema>
+            <name>George</name>
+            <telno>451 5677</telno>
+          </summary>
+        </io>
+        <io>
+          <summary>
+            <type>output</type>
+            <xml>
+              <![CDATA[
+<?xml version="1.0" encoding="UTF-8"?>
+<contacts>
+  <summary>
+    <recordx_type>dynarex</recordx_type>
+    <format_mask>[!name] [!telno]</format_mask>
+    <schema>contacts/contact(name, telno)</schema>
+  </summary>
+  <records>
+    <contact id="1" created="2011-01-02 19:45:09 +0000" last_modified="">
+      <name>George</name>
+      <telno>451 5677</telno>
+    </contact>
+  </records>
+</contacts>
+              ]]>
+            </xml>
+          </summary>
+        </io>
+      </records>
+    </test>
+    <test>
+      <summary>
+        <path>3</path>
+        <description>Importing records</description>
+      </summary>
+      <records>
+        <io>
+          <summary>
+            <type>input</type>
+            <schema>contacts/contact(name, telno)</schema>
+            <contacts>
+John 447 5603
+Ian 456 8424
+Tom 333 8761
+            </contacts>
+          </summary>
+        </io>
+        <io>
+          <summary>
+            <type>output</type>
+            <xml>
+              <![CDATA[
+<?xml version="1.0" encoding="UTF-8"?>
+<contacts>
+  <summary>
+    <recordx_type>dynarex</recordx_type>
+    <format_mask>[!name] [!telno]</format_mask>
+    <schema>contacts/contact(name, telno)</schema>
+  </summary>
+  <records>
+    <contact id="1" created="2011-01-02 19:45:09 +0000" last_modified="">
+      <name>John 447</name>
+      <telno>5603</telno>
+    </contact>
+    <contact id="2" created="2011-01-02 19:45:09 +0000" last_modified="">
+      <name>Ian 456</name>
+      <telno>8424</telno>
+    </contact>
+    <contact id="3" created="2011-01-02 19:45:09 +0000" last_modified="">
+      <name>Tom 333</name>
+      <telno>8761</telno>
+    </contact>
+  </records>
+</contacts>
+              ]]>
+            </xml>
+          </summary>
+        </io>
+      </records>
+    </test>
+    <test>
+      <summary>
+        <path>4</path>
+        <description>Deleting a record</description>
+      </summary>
+      <records>
+        <io>
+          <summary>
+            <type>input</type>
+            <schema>contacts/contact(name, telno)</schema>
+            <contacts>
+John 447 5603
+Ian 456 8424
+Tom 333 8761
+            </contacts>
+            <id>2</id>
+          </summary>
+        </io>
+        <io>
+          <summary>
+            <type>output</type>
+            <xml>
+              <![CDATA[
+<?xml version="1.0" encoding="UTF-8"?>
+<contacts>
+  <summary>
+    <recordx_type>dynarex</recordx_type>
+    <format_mask>[!name] [!telno]</format_mask>
+    <schema>contacts/contact(name, telno)</schema>
+  </summary>
+  <records>
+    <contact id="1" created="2011-01-02 19:45:09 +0000" last_modified="">
+      <name>John 447</name>
+      <telno>5603</telno>
+    </contact>
+    <contact id="3" created="2011-01-02 19:45:09 +0000" last_modified="">
+      <name>Tom 333</name>
+      <telno>8761</telno>
+    </contact>
+  </records>
+</contacts>
+              ]]>
+            </xml>
+          </summary>
+        </io>
+      </records>
+    </test>
+    <test>
+      <summary>
+        <path>5</path>
+        <description>Update a record</description>
+      </summary>
+      <records>
+        <io>
+          <summary>
+            <type>input</type>
+            <schema>contacts/contact(name, telno)</schema>
+            <contacts>
+John 447 5603
+Ian 456 8424
+Tom 333 8761
+            </contacts>
+            <id>2</id>
+            <number>6624</number>
+          </summary>
+        </io>
+        <io>
+          <summary>
+            <type>output</type>
+            <xml>
+              <![CDATA[
+<?xml version="1.0" encoding="UTF-8"?>
+<contacts>
+  <summary>
+    <recordx_type>dynarex</recordx_type>
+    <format_mask>[!name] [!telno]</format_mask>
+    <schema>contacts/contact(name, telno)</schema>
+  </summary>
+  <records>
+    <contact id="1" created="2011-01-02 19:45:09 +0000" last_modified="">
+      <name>John 447</name>
+      <telno>5603</telno>
+    </contact>
+    <contact id="2" created="2011-01-02 19:45:09 +0000" last_modified="">
+      <name>Ian 456</name>
+      <telno>6624</telno>
+    </contact>
+    <contact id="3" created="2011-01-02 19:45:09 +0000" last_modified="">
+      <name>Tom 333</name>
+      <telno>8761</telno>
+    </contact>
+  </records>
+</contacts>
+              ]]>
+            </xml>
+          </summary>
+        </io>
+      </records>
+    </test>
+  </records>
+</tests>
