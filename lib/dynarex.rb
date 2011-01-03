@@ -214,8 +214,13 @@ EOF
 #Delete a record.
 #  dyarex.delete 3      # deletes record with id 3
   
-  def delete(id)        
-    @doc.delete("records/*[@id='#{id}']")
+  def delete(x)        
+
+    if x.to_i.to_s.length == x.to_s.length and x[/[0-9]/] then
+      @doc.delete("records/*[@id='#{x}']")
+    else
+      @doc.delete x
+    end
     load_records
     self
   end
