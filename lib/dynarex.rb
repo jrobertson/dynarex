@@ -27,6 +27,8 @@ class Dynarex
 
   def add(x)
     @doc.add x
+    load_records
+    self
   end
 
   def delimiter=(separator)
@@ -163,8 +165,9 @@ EOF
     end    
     
     h.each {|key, item| h.delete(key) if not h2.has_key? key}
-    refresh_doc
+    #refresh_doc
     #load_records
+    rebuild_doc
     self
   end  
   
@@ -288,6 +291,11 @@ EOF
   
   def display_xml
     
+    @doc.xml pretty: true
+  end
+
+  def rebuild_doc
+    
     xml = Builder::XmlMarkup.new( :target => buffer='', :indent => 2 )
     xml.instruct! :xml, :version => "1.0", :encoding => "UTF-8"
 
@@ -295,20 +303,21 @@ EOF
       xml.summary do
         @summary.each{|key,value| xml.send key, value}
       end
-      xml.records do
-        if @records then
+      if @records then
+        xml.records do
+
           @records.each do |k, item|
             xml.send(@record_name, id: item[:id], created: item[:created], \
                 last_modified: item[:last_modified]) do
               item[:body].each{|name,value| xml.send name, value}
             end
           end
+
         end
-      end
+      end # end of if @records
     end
 
     @doc = Rexle.new buffer
-    buffer
 
   end
 
