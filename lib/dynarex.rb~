@@ -27,7 +27,6 @@ class Dynarex
 
   def add(x)
     @doc.add x
-    puts 'docccc : ' + @doc.xml
     load_records
     self
   end

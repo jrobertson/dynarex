@@ -6,7 +6,8 @@ require 'nokogiri'
 require 'open-uri'
 require 'builder'
 require 'ostruct'
-require 'rexle'
+#require 'rexle'
+require '/home/james/learning/ruby/rexle'
 
 class Dynarex
 
@@ -109,8 +110,8 @@ EOF
 
   end
   
-  def to_xml  
-    display_xml()
+  def to_xml(options={}) 
+    display_xml(options)
   end
   
 #Save the document to a local file.  
@@ -291,7 +292,7 @@ EOF
   
   def display_xml
     
-    @doc.xml pretty: true
+    @doc.xml #pretty: true
   end
 
   def rebuild_doc
@@ -361,7 +362,7 @@ end))
   
   def open(s)
     
-    if s.strip[/^</] then # xml
+    if s[/</] then # xml
       buffer = s
     elsif s[/\(/] # schema
       buffer = dynarex_new s
