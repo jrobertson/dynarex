@@ -6,8 +6,7 @@ require 'nokogiri'
 require 'open-uri'
 require 'builder'
 require 'ostruct'
-#require 'rexle'
-require '/home/james/learning/ruby/rexle'
+require 'rexle'
 
 class Dynarex
 
@@ -110,8 +109,8 @@ EOF
 
   end
   
-  def to_xml(options={}) 
-    display_xml(options)
+  def to_xml() 
+    display_xml()
   end
   
 #Save the document to a local file.  
@@ -292,7 +291,7 @@ EOF
   
   def display_xml
     
-    @doc.xml #pretty: true
+    @doc.xml pretty: true
   end
 
   def rebuild_doc
