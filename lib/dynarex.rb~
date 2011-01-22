@@ -117,6 +117,7 @@ EOF
   
   def save(filepath=nil)
     filepath ||= @local_filepath
+    @local_filepath = filepath
     xml = display_xml()
     File.open(filepath,'w'){|f| f.write xml}
   end

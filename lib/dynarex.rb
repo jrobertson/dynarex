@@ -167,7 +167,8 @@ EOF
     
     h.each {|key, item| h.delete(key) if not h2.has_key? key}
     #refresh_doc
-    #load_records
+    #load_records  
+    @flat_records = @records.values.map{|x| x[:body]}
     rebuild_doc
     self
   end  
@@ -404,23 +405,15 @@ end))
 
   def load_records
     @records = records_to_h
-    @flat_records = flat_records_to_h
+
+    #Returns a ready-only snapshot of records as a simple Hash.
+    @flat_records = @records.values.map{|x| x[:body]}
   end
 
   def display()
     puts @doc.to_s
   end
-
-#Returns a ready-only snapshot of records as a simple Hash.
-  
-  def flat_records_to_h
-    @doc.xpath('records/*').map do |row|
-      row.xpath('*').inject({}) do |r,node|
-        r.merge node.name.to_sym => node.text
-      end
-    end
-  end
-
+ 
   def records_to_h()
 
     i = @doc.xpath('max(records/*/attribute::id)') || 0
