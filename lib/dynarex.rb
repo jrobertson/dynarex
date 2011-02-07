@@ -150,7 +150,7 @@ EOF
     # 'a' and 'a_split' just used for validation
     a = @format_mask.scan(/\[!\w+\]/)
     a_split = @format_mask.split(/\[!\w+\]/)
-
+    
     if a.length == 2 and a_split[1].length == 1 then  
       a2 = []
 
@@ -161,11 +161,9 @@ EOF
       a2 << "(.*)"
       t = a2.join
     else
+      # convert the format mask into a friendly reg exp string
       t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
     end
-
-    # convert the format mask into a friendly reg exp string
-    t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
 
     lines = buffer.strip.split(/\r?\n|\r(?!\n)/).map {|x|x.match(/#{t}/).captures}
 

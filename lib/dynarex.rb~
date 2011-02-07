@@ -143,8 +143,28 @@ EOF
       header.scan(/\w+\="[^"]+\"/).map{|x| r = x.split(/=/); [(r[0] + "=").to_sym, r[1][/^"(.*)"$/,1]] }.each {|name, value|      self.method(name).call(value)}
     end
 
-    #i = XPath.match(@doc.root, 'records/*/attribute::id').max_by(&:value).to_s.to_i
+    # if records already exist find the max id
     i = @doc.xpath('records/*/attribute::id').max_by(&:value).to_s.to_i
+
+    
+    # 'a' and 'a_split' just used for validation
+    a = @format_mask.scan(/\[!\w+\]/)
+    a_split = @format_mask.split(/\[!\w+\]/)
+
+    if a.length == 2 and a_split[1].length == 1 then  
+      a2 = []
+
+      # 1st
+      a2 << "([^#{a_split[1]}]+)" << a_split[1]
+
+      # last
+      a2 << "(.*)"
+      t = a2.join
+    else
+      t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
+    end
+
+    # convert the format mask into a friendly reg exp string
     t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
 
     lines = buffer.strip.split(/\r?\n|\r(?!\n)/).map {|x|x.match(/#{t}/).captures}
