@@ -6,7 +6,9 @@ require 'nokogiri'
 require 'open-uri'
 require 'builder'
 require 'ostruct'
+require 'dynarex-import'
 require 'rexle'
+require 'line-tree'
 
 class Dynarex
 
@@ -34,6 +36,14 @@ class Dynarex
   def delimiter=(separator)
     @format_mask = @format_mask.to_s.gsub(/\s/, separator)
     @summary[:format_mask] = @format_mask
+  end
+
+  def import(options={})
+    o = {xml: '', schema: ''}.merge(options)
+    h = {xml: o[:xml], schema: @schema, foreign_schema: o[:schema]}
+    buffer = DynarexImport.new(h).to_xml
+    open(buffer)
+    self
   end
   
   def fields
@@ -167,7 +177,8 @@ EOF
     
     h.each {|key, item| h.delete(key) if not h2.has_key? key}
     #refresh_doc
-    #load_records
+    #load_records  
+    @flat_records = @records.values.map{|x| x[:body]}
     rebuild_doc
     self
   end  
@@ -330,25 +341,19 @@ EOF
     root_name, raw_summary, record_name, raw_fields = s.match(ptrn).captures
     summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}  
 
-    xml = Builder::XmlMarkup.new( target: buffer='', indent: 2 )
-    xml.instruct! :xml, version: "1.0", encoding: "UTF-8"
-
-    xml.send root_name do
-      xml.summary do
-        summary.each do |item|        
-          xml.send item
-        end
-        xml.recordx_type 'dynarex'
-        xml.format_mask fields.map {|x| "[!%s]" % x}.join(' ')
-        xml.schema s
-      end
-      xml.records
-    end
+lines =<<LINES
+#{root_name}
+  summary#{"\n" + ' ' * 4 + summary.join("\n" + ' ' * 4) unless summary.empty?}
+    recordx_type dynarex
+    format_mask #{fields.map {|x| "[!%s]" % x}.join(' ')}
+    schema #{s}
+  records
+LINES
     
     @records = {}
     @flat_records = {}
     
-    buffer
+    LineTree.new(lines).to_xml
   end
 
   def attach_record_methods()
@@ -404,23 +409,15 @@ end))
 
   def load_records
     @records = records_to_h
-    @flat_records = flat_records_to_h
+
+    #Returns a ready-only snapshot of records as a simple Hash.
+    @flat_records = @records.values.map{|x| x[:body]}
   end
 
   def display()
     puts @doc.to_s
   end
-
-#Returns a ready-only snapshot of records as a simple Hash.
-  
-  def flat_records_to_h
-    @doc.xpath('records/*').map do |row|
-      row.xpath('*').inject({}) do |r,node|
-        r.merge node.name.to_sym => node.text
-      end
-    end
-  end
-
+ 
   def records_to_h()
 
     i = @doc.xpath('max(records/*/attribute::id)') || 0

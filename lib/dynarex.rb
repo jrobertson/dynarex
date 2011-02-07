@@ -6,7 +6,9 @@ require 'nokogiri'
 require 'open-uri'
 require 'builder'
 require 'ostruct'
+require 'dynarex-import'
 require 'rexle'
+require 'line-tree'
 
 class Dynarex
 
@@ -34,6 +36,14 @@ class Dynarex
   def delimiter=(separator)
     @format_mask = @format_mask.to_s.gsub(/\s/, separator)
     @summary[:format_mask] = @format_mask
+  end
+
+  def import(options={})
+    o = {xml: '', schema: ''}.merge(options)
+    h = {xml: o[:xml], schema: @schema, foreign_schema: o[:schema]}
+    buffer = DynarexImport.new(h).to_xml
+    open(buffer)
+    self
   end
   
   def fields
@@ -133,8 +143,28 @@ EOF
       header.scan(/\w+\="[^"]+\"/).map{|x| r = x.split(/=/); [(r[0] + "=").to_sym, r[1][/^"(.*)"$/,1]] }.each {|name, value|      self.method(name).call(value)}
     end
 
-    #i = XPath.match(@doc.root, 'records/*/attribute::id').max_by(&:value).to_s.to_i
+    # if records already exist find the max id
     i = @doc.xpath('records/*/attribute::id').max_by(&:value).to_s.to_i
+
+    
+    # 'a' and 'a_split' just used for validation
+    a = @format_mask.scan(/\[!\w+\]/)
+    a_split = @format_mask.split(/\[!\w+\]/)
+
+    if a.length == 2 and a_split[1].length == 1 then  
+      a2 = []
+
+      # 1st
+      a2 << "([^#{a_split[1]}]+)" << a_split[1]
+
+      # last
+      a2 << "(.*)"
+      t = a2.join
+    else
+      t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
+    end
+
+    # convert the format mask into a friendly reg exp string
     t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
 
     lines = buffer.strip.split(/\r?\n|\r(?!\n)/).map {|x|x.match(/#{t}/).captures}
@@ -331,25 +361,19 @@ EOF
     root_name, raw_summary, record_name, raw_fields = s.match(ptrn).captures
     summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}  
 
-    xml = Builder::XmlMarkup.new( target: buffer='', indent: 2 )
-    xml.instruct! :xml, version: "1.0", encoding: "UTF-8"
-
-    xml.send root_name do
-      xml.summary do
-        summary.each do |item|        
-          xml.send item
-        end
-        xml.recordx_type 'dynarex'
-        xml.format_mask fields.map {|x| "[!%s]" % x}.join(' ')
-        xml.schema s
-      end
-      xml.records
-    end
+lines =<<LINES
+#{root_name}
+  summary#{"\n" + ' ' * 4 + summary.join("\n" + ' ' * 4) unless summary.empty?}
+    recordx_type dynarex
+    format_mask #{fields.map {|x| "[!%s]" % x}.join(' ')}
+    schema #{s}
+  records
+LINES
     
     @records = {}
     @flat_records = {}
     
-    buffer
+    LineTree.new(lines).to_xml
   end
 
   def attach_record_methods()
