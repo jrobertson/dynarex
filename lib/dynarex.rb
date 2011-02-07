@@ -320,7 +320,7 @@ EOF
 
   
   def display_xml
-    
+    rebuild_doc()
     @doc.xml pretty: true
   end
 
