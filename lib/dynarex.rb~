@@ -4,7 +4,6 @@
 
 require 'nokogiri'
 require 'open-uri'
-require 'builder'
 require 'ostruct'
 require 'dynarex-import'
 require 'rexle'
@@ -212,8 +211,6 @@ EOF
     load_records
     self
   end
-
-
   
 #Create a record from a string, given the dynarex document contains a format mask.
 #  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
@@ -239,7 +236,7 @@ EOF
     record = @doc.element("records/#{@record_name}[@id='#{id.to_s}']")    
     fields.each {|k,v| record.element(k.to_s).text = v if v}
     record.add_attribute(last_modified: Time.now.to_s)
-
+    puts '@doc : ' + @doc.xml
     load_records
     self
   end
@@ -249,7 +246,7 @@ EOF
   
   def delete(x)        
 
-    if x.to_i.to_s.length == x.to_s.length and x[/[0-9]/] then
+    if x.to_i.to_s == x.to_s and x[/[0-9]/] then
       @doc.delete("records/*[@id='#{x}']")
     else
       @doc.delete x
@@ -326,28 +323,27 @@ EOF
 
   def rebuild_doc
     
-    xml = Builder::XmlMarkup.new( :target => buffer='', :indent => 2 )
-    xml.instruct! :xml, :version => "1.0", :encoding => "UTF-8"
-
-    xml.send @root_name do
-      xml.summary do
-        @summary.each{|key,value| xml.send key, value}
-      end
-      if @records then
-        xml.records do
-
-          @records.each do |k, item|
-            xml.send(@record_name, id: item[:id], created: item[:created], \
-                last_modified: item[:last_modified]) do
-              item[:body].each{|name,value| xml.send name, value}
-            end
-          end
-
+    builder = Nokogiri::XML::Builder.new do |xml|
+      xml.send @root_name do
+        xml.summary do
+          @summary.each{|key,value| xml.send key, value}
         end
-      end # end of if @records
+        if @records then
+          xml.records do
+
+            @records.each do |k, item|
+              xml.send(@record_name, id: item[:id], created: item[:created], \
+                  last_modified: item[:last_modified]) do
+                item[:body].each{|name,value| xml.send name, value}
+              end
+            end
+
+          end
+        end # end of if @records
+      end
     end
 
-    @doc = Rexle.new buffer
+    @doc = Rexle.new builder.to_xml
 
   end
 
@@ -451,7 +447,7 @@ end))
         i += 1; id = i.to_s
       end
       created = row.attributes['created'] if row.attributes['created']
-      last_modified = row.attributes['last_modified'] if row.attributes['last_modified']
+      last_modified = row.attributes[:last_modified] if row.attributes[:last_modified]
       body = row.xpath('*').inject({}) do |r,node|
         r.merge node.name.to_sym => node.text
       end

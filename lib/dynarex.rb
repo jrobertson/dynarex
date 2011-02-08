@@ -4,7 +4,6 @@
 
 require 'nokogiri'
 require 'open-uri'
-require 'builder'
 require 'ostruct'
 require 'dynarex-import'
 require 'rexle'
@@ -212,8 +211,6 @@ EOF
     load_records
     self
   end
-
-
   
 #Create a record from a string, given the dynarex document contains a format mask.
 #  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
@@ -249,7 +246,7 @@ EOF
   
   def delete(x)        
 
-    if x.to_i.to_s.length == x.to_s.length and x[/[0-9]/] then
+    if x.to_i.to_s == x.to_s and x[/[0-9]/] then
       @doc.delete("records/*[@id='#{x}']")
     else
       @doc.delete x
@@ -450,7 +447,7 @@ end))
         i += 1; id = i.to_s
       end
       created = row.attributes['created'] if row.attributes['created']
-      last_modified = row.attributes['last_modified'] if row.attributes['last_modified']
+      last_modified = row.attributes[:last_modified] if row.attributes[:last_modified]
       body = row.xpath('*').inject({}) do |r,node|
         r.merge node.name.to_sym => node.text
       end
