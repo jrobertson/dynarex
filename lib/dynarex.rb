@@ -326,28 +326,27 @@ EOF
 
   def rebuild_doc
     
-    xml = Builder::XmlMarkup.new( :target => buffer='', :indent => 2 )
-    xml.instruct! :xml, :version => "1.0", :encoding => "UTF-8"
-
-    xml.send @root_name do
-      xml.summary do
-        @summary.each{|key,value| xml.send key, value}
-      end
-      if @records then
-        xml.records do
-
-          @records.each do |k, item|
-            xml.send(@record_name, id: item[:id], created: item[:created], \
-                last_modified: item[:last_modified]) do
-              item[:body].each{|name,value| xml.send name, value}
-            end
-          end
-
+    builder = Nokogiri::XML::Builder.new do |xml|
+      xml.send @root_name do
+        xml.summary do
+          @summary.each{|key,value| xml.send key, value}
         end
-      end # end of if @records
+        if @records then
+          xml.records do
+
+            @records.each do |k, item|
+              xml.send(@record_name, id: item[:id], created: item[:created], \
+                  last_modified: item[:last_modified]) do
+                item[:body].each{|name,value| xml.send name, value}
+              end
+            end
+
+          end
+        end # end of if @records
+      end
     end
 
-    @doc = Rexle.new buffer
+    @doc = Rexle.new builder.to_xml
 
   end
 
