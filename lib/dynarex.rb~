@@ -236,7 +236,7 @@ EOF
     record = @doc.element("records/#{@record_name}[@id='#{id.to_s}']")    
     fields.each {|k,v| record.element(k.to_s).text = v if v}
     record.add_attribute(last_modified: Time.now.to_s)
-    puts '@doc : ' + @doc.xml
+
     load_records
     self
   end

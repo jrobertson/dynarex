@@ -441,12 +441,12 @@ end))
       created = Time.now.to_s
       last_modified = ''
       
-      if row.attributes['id'] then
-        id = row.attributes['id']
+      if row.attributes[:id] then
+        id = row.attributes[:id]
       else
         i += 1; id = i.to_s
       end
-      created = row.attributes['created'] if row.attributes['created']
+      created = row.attributes[:created] if row.attributes[:created]
       last_modified = row.attributes[:last_modified] if row.attributes[:last_modified]
       body = row.xpath('*').inject({}) do |r,node|
         r.merge node.name.to_sym => node.text
