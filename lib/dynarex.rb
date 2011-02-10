@@ -6,8 +6,8 @@ require 'nokogiri'
 require 'open-uri'
 require 'ostruct'
 require 'dynarex-import'
-require 'rexle'
 require 'line-tree'
+require 'rexle'
 
 class Dynarex
 
@@ -231,14 +231,17 @@ EOF
   
   def update(id, params={})
     fields = capture_fields(params)
-    
+
+
     # for each field update each record field
     record = @doc.element("records/#{@record_name}[@id='#{id.to_s}']")    
     fields.each {|k,v| record.element(k.to_s).text = v if v}
     record.add_attribute(last_modified: Time.now.to_s)
 
     load_records
+
     self
+
   end
 
 #Delete a record.
@@ -303,7 +306,7 @@ EOF
     end
 
     attributes = {id: id, created: Time.now.to_s, last_modified: nil}
-    attributes.each {|k,v| record.add_attribute(k.to_s, v)}
+    attributes.each {|k,v| record.add_attribute(k, v)}
 
     @doc.element('records').add record            
 
@@ -446,10 +449,11 @@ end))
       else
         i += 1; id = i.to_s
       end
+
       created = row.attributes[:created] if row.attributes[:created]
       last_modified = row.attributes[:last_modified] if row.attributes[:last_modified]
       body = row.xpath('*').inject({}) do |r,node|
-        r.merge node.name.to_sym => node.text
+        r.merge node.name.to_sym => node.text.unescape
       end
 
       result.merge body[@default_key.to_sym] => {id: id, created: created, last_modified: last_modified, body: body}
