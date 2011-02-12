@@ -7,8 +7,7 @@ require 'open-uri'
 require 'ostruct'
 require 'dynarex-import'
 require 'line-tree'
-#require 'rexle'
-require '/home/james/learning/ruby/rexle'
+require 'rexle'
 
 class Dynarex
 

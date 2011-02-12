@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'dynarex'
-  s.version = '1.0.15'
+  s.version = '1.0.16'
   s.summary = 'dynarex'
   s.files = Dir['lib/**/*.rb']
   s.add_dependency('rexle')
