@@ -356,6 +356,9 @@ EOF
     root_name, raw_summary, record_name, raw_fields = s.match(ptrn).captures
     summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}  
 
+    reserved = %w(require parent)
+    raise 'reserved keyword' unless a.grep(/^(#{reserved.join('|')})$/).empty?
+
 lines =<<LINES
 #{root_name}
   summary#{"\n" + ' ' * 4 + summary.join("\n" + ' ' * 4) unless summary.empty?}
