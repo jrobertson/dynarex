@@ -143,7 +143,7 @@ EOF
     end
 
     # if records already exist find the max id
-    i = @doc.xpath('records/*/attribute::id').max_by(&:value).to_s.to_i
+    i = @doc.xpath('max(records/*/attribute::id)').to_i
 
     
     # 'a' and 'a_split' just used for validation
@@ -205,6 +205,7 @@ EOF
 #  dynarex.create name: Bob, age: 52
 
   def create(arg, id=nil)
+
     methods = {Hash: :hash_create, String: :create_from_line}
     send (methods[arg.class.to_s.to_sym]), arg, id
 
@@ -299,11 +300,8 @@ EOF
       element.text = v if v
       record.add element
     end
-
-    unless id
-      ids = @doc.xpath('records/*/attribute::id').map(&:to_i)
-      id = ids.empty? ? (id || 1) : ids.max.succ
-    end
+    
+    id = (@doc.xpath('max(records/*/attribute::id)').to_i + 1).to_s unless id
 
     attributes = {id: id, created: Time.now.to_s, last_modified: nil}
     attributes.each {|k,v| record.add_attribute(k, v)}
