@@ -357,7 +357,7 @@ EOF
     summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}  
 
     reserved = %w(require parent)
-    raise 'reserved keyword' unless a.grep(/^(#{reserved.join('|')})$/).empty?
+    raise 'reserved keyword' unless fields.grep(/^(#{reserved.join('|')})$/).empty?
 
 lines =<<LINES
 #{root_name}

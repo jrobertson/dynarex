@@ -261,8 +261,8 @@ EOF
 
   def element(x)
     @doc.element x
-  end  
-  
+  end
+    
   def sort_by!(&element_blk)
     refresh_doc
     a = @doc.xpath('records/*').sort_by &element_blk
@@ -277,8 +277,7 @@ EOF
   end
   
   def record(id)
-    h = Hash[*@doc.xpath("records/*[@id='#{id}']/*").map {|x| [x.name, x.text]}.flatten]
-    OpenStruct.new h    
+    recordx_to_record @doc.element("records/*[@id='#{id}']")
   end
   
   def record_exists?(id)
@@ -290,7 +289,29 @@ EOF
   end
 
   private
-  
+
+
+  def create_find(fields)  
+    methods = fields.map do |field|
+      "def find_by_#{field}(value) findx_by('#{field}', value) end\n" + \
+        "def find_all_by_#{field}(value) findx_all_by('#{field}', value) end"
+    end
+    self.instance_eval(methods.join("\n"))
+  end
+
+  def findx_by(field, value)
+    r = @doc.element("records/*[#{field}='#{value}']")
+    r ? recordx_to_record(r) : nil
+  end
+
+  def findx_all_by(field, value)
+    @doc.xpath("records/*[#{field}='#{value}']").map {|x| recordx_to_record x}
+  end
+
+  def recordx_to_record(recordx)
+    OpenStruct.new(Hash[*@fields.zip(recordx.xpath("*/text()")).flatten])
+  end
+
   def hash_create(params={}, id=nil)
 
     fields = capture_fields(params)
@@ -355,9 +376,10 @@ EOF
     ptrn = %r((\w+)\[?([^\]]+)?\]?\/(\w+)\(([^\)]+)\))
     root_name, raw_summary, record_name, raw_fields = s.match(ptrn).captures
     summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}  
+    create_find fields
 
     reserved = %w(require parent)
-    raise 'reserved keyword' unless fields.grep(/^(#{reserved.join('|')})$/).empty?
+    raise 'reserved keyword' if (fields & reserved).any?
 
 lines =<<LINES
 #{root_name}
@@ -375,12 +397,7 @@ LINES
   end
 
   def attach_record_methods()
-    @fields.each do |field|
-      self.instance_eval(
-%Q(def find_by_#{field}(s)
- Hash[@fields.zip(@doc.xpath("records/*[#{field}='\#{s}']/*/text()"))]
-end))
-    end    
+    create_find @fields
   end
   
   def open(s)
