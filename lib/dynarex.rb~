@@ -133,71 +133,9 @@ EOF
   
 #Parses 1 or more lines of text to create or update existing records.
 
-  def parse(buffer)
-
-    raw_header = buffer.slice!(/<\?dynarex[^>]+>/)
-
-    if raw_header then
-      header = raw_header[/<?dynarex (.*)?>/,1]
-      header.scan(/\w+\="[^"]+\"/).map{|x| r = x.split(/=/); [(r[0] + "=").to_sym, r[1][/^"(.*)"$/,1]] }.each {|name, value|      self.method(name).call(value)}
-    end
-
-    # if records already exist find the max id
-    i = @doc.xpath('max(records/*/attribute::id)').to_i
-
-    
-    # 'a' and 'a_split' just used for validation
-    a = @format_mask.scan(/\[!\w+\]/)
-    a_split = @format_mask.split(/\[!\w+\]/)
-    
-    if a.length == 2 and a_split[1].length == 1 then  
-      a2 = []
-
-      # 1st
-      a2 << "([^#{a_split[1]}]+)" << a_split[1]
-
-      # last
-      a2 << "(.*)"
-      t = a2.join
-    else
-      # convert the format mask into a friendly reg exp string
-      t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
-    end
-
-    lines = buffer.strip.split(/\r?\n|\r(?!\n)/).map {|x|x.match(/#{t}/).captures}
-
-    a = lines.map do|x| 
-      created = Time.now.to_s
-      
-      h = Hash[@fields.zip(x)]
-      [h[@default_key], {id: '', created: created, last_modified: '', body: h}]
-    end
-    
-    h2 = Hash[a]
-    
-    #replace the existing records hash
-    h = @records
-    h2.each do |key,item|
-      if h.has_key? key then
-
-        # overwrite the previous item and change the timestamps
-        h[key][:last_modified] = item[:created]
-        item[:body].each do |k,v|
-          h[key][:body][k.to_sym] = v
-        end
-      else
-        i += 1
-        item[:id] =  i.to_s
-        h[key] = item.clone
-      end      
-    end    
-    
-    h.each {|key, item| h.delete(key) if not h2.has_key? key}
-    #refresh_doc
-    #load_records  
-    @flat_records = @records.values.map{|x| x[:body]}
-    rebuild_doc
-    self
+  def parse(buffer='')
+    buffer = yield if block_given?          
+    string_parse buffer
   end  
   
 #Create a record from a hash containing the field name, and the field value.
@@ -371,6 +309,65 @@ EOF
 
   alias refresh_doc display_xml
 
+  def string_parse(buffer)
+    raw_header = buffer.slice!(/<\?dynarex[^>]+>/)
+
+    if raw_header then
+      header = raw_header[/<?dynarex (.*)?>/,1]
+      header.scan(/\w+\="[^"]+\"/).map{|x| r = x.split(/=/); [(r[0] + "=").to_sym, r[1][/^"(.*)"$/,1]] }.each {|name, value|      self.method(name).call(value)}
+    end
+
+    # if records already exist find the max id
+    i = @doc.xpath('max(records/*/attribute::id)').to_i
+
+    
+    # 'a' and 'a_split' just used for validation
+    a = @format_mask.scan(/\[!\w+\]/)
+    a_split = @format_mask.split(/\[!\w+\]/)
+    
+    if a.length == 2 and a_split[1].length == 1 then  
+      t = "([^#{a_split[1]}]+)" + a_split[1] + "(.*)"
+    else
+      # convert the format mask into a friendly reg exp string
+      t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
+    end
+
+    lines = buffer.strip.split(/\r?\n|\r(?!\n)/).map {|x|x.strip.match(/#{t}/).captures}
+
+    a = lines.map do|x| 
+      created = Time.now.to_s
+      
+      h = Hash[@fields.zip(x)]
+      [h[@default_key], {id: '', created: created, last_modified: '', body: h}]
+    end
+    
+    h2 = Hash[a]
+    
+    #replace the existing records hash
+    h = @records
+    h2.each do |key,item|
+      if h.has_key? key then
+
+        # overwrite the previous item and change the timestamps
+        h[key][:last_modified] = item[:created]
+        item[:body].each do |k,v|
+          h[key][:body][k.to_sym] = v
+        end
+      else
+        i += 1
+        item[:id] =  i.to_s
+        h[key] = item.clone
+      end      
+    end    
+    
+    h.each {|key, item| h.delete(key) if not h2.has_key? key}
+    #refresh_doc
+    #load_records  
+    @flat_records = @records.values.map{|x| x[:body]}
+    rebuild_doc
+    self
+  end
+
   def dynarex_new(s)
     @schema = s
     ptrn = %r((\w+)\[?([^\]]+)?\]?\/(\w+)\(([^\)]+)\))
@@ -444,7 +441,12 @@ LINES
 
   def load_records
     @records = records_to_h
-
+    @records.instance_eval do
+       def delete_item(i)
+         self.delete self.keys[i]
+       end
+    end
+      
     #Returns a ready-only snapshot of records as a simple Hash.
     @flat_records = @records.values.map{|x| x[:body]}
   end

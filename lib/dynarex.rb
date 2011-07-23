@@ -86,7 +86,7 @@ class Dynarex
   def to_s
 xsl_buffer =<<EOF
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
-<xsl:output encoding="UTF-8"display_xml
+<xsl:output encoding="UTF-8"
             method="text"
             indent="no"
             omit-xml-declaration="yes"/>
@@ -143,7 +143,8 @@ EOF
 #  dynarex.create name: Bob, age: 52
 
   def create(arg, id=nil)
-
+    
+    rebuild_doc()
     methods = {Hash: :hash_create, String: :create_from_line}
     send (methods[arg.class.to_s.to_sym]), arg, id
 
@@ -326,20 +327,13 @@ EOF
     a_split = @format_mask.split(/\[!\w+\]/)
     
     if a.length == 2 and a_split[1].length == 1 then  
-      a2 = []
-
-      # 1st
-      a2 << "([^#{a_split[1]}]+)" << a_split[1]
-
-      # last
-      a2 << "(.*)"
-      t = a2.join
+      t = "([^#{a_split[1]}]+)" + a_split[1] + "(.*)"
     else
       # convert the format mask into a friendly reg exp string
       t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
     end
 
-    lines = buffer.strip.split(/\r?\n|\r(?!\n)/).map {|x|x.match(/#{t}/).captures}
+    lines = buffer.strip.split(/\r?\n|\r(?!\n)/).map {|x|x.strip.match(/#{t}/).captures}
 
     a = lines.map do|x| 
       created = Time.now.to_s
@@ -448,7 +442,12 @@ LINES
 
   def load_records
     @records = records_to_h
-
+    @records.instance_eval do
+       def delete_item(i)
+         self.delete self.keys[i]
+       end
+    end
+      
     #Returns a ready-only snapshot of records as a simple Hash.
     @flat_records = @records.values.map{|x| x[:body]}
   end
