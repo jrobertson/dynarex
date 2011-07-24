@@ -8,6 +8,7 @@ require 'ostruct'
 require 'dynarex-import'
 require 'line-tree'
 require 'rexle'
+require 'rexlebuilder'
 
 class Dynarex
 
@@ -101,13 +102,6 @@ EOF
 
     #format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
     format_mask = @doc.element('summary/format_mask/text()')
-    dynarex = Dynarex.new
-
-    s = %q(schema="companies/company(name, last_contacted, contact)" delimiter=" # ")
-    s.split(/(?=\w+\="[^"]+")/)
-    raw_a = s.scan(/\w+\="[^"]+"/)
-    a = raw_a.map{|x| r = x.split(/=/); [(r[0] + "=").to_sym, r[1][/^"(.*)"$/,1]] }
-    a.each{|name, value| dynarex.method(name).call(value)}
 
     xslt_format = format_mask.to_s.gsub(/\s(?=\[!\w+\])/,'<xsl:text> </xsl:text>').gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
     xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
@@ -251,7 +245,9 @@ EOF
     OpenStruct.new(Hash[*@fields.zip(recordx.xpath("*/text()")).flatten])
   end
 
-  def hash_create(params={}, id=nil)
+  def hash_create(raw_params={}, id=nil)
+
+    params = Hash[raw_params.keys.map(&:to_sym).zip(raw_params.values)]
 
     fields = capture_fields(params)
     record = Rexle::Element.new @record_name
@@ -261,8 +257,9 @@ EOF
       record.add element
     end
     
-    id = (@doc.xpath('max(records/*/attribute::id)').to_i + 1).to_s unless id
 
+    id = (@doc.xpath('max(records/*/attribute::id)') || '0').succ unless id
+    
     attributes = {id: id, created: Time.now.to_s, last_modified: nil}
     attributes.each {|k,v| record.add_attribute(k, v)}
 
@@ -272,39 +269,39 @@ EOF
 
   def capture_fields(params)
     fields = Hash[@fields.map {|x| [x,nil]}]
-    fields.keys.each {|key| fields[key] = params[key] if params.has_key? key}      
+    fields.keys.each {|key| fields[key] = params[key.to_sym] if params.has_key? key.to_sym}      
     fields
   end
 
   
   def display_xml
     rebuild_doc()
-    @doc.xml pretty: true
+    @doc.xml #jr230711 pretty: true
   end
 
   def rebuild_doc
-    
-    builder = Nokogiri::XML::Builder.new do |xml|
-      xml.send @root_name do
-        xml.summary do
-          @summary.each{|key,value| xml.send key, value}
-        end
-        if @records then
-          xml.records do
 
-            @records.each do |k, item|
-              xml.send(@record_name, id: item[:id], created: item[:created], \
-                  last_modified: item[:last_modified]) do
-                item[:body].each{|name,value| xml.send name, value}
-              end
-            end
-
-          end
-        end # end of if @records
+    xml = RexleBuilder.new
+    a = xml.send @root_name do
+      xml.summary do
+        @summary.each{|key,value| xml.send key, value}
       end
+      if @records then
+        xml.records do
+
+          @records.each do |k, item|
+            p 'foo ' + item.inspect
+            xml.send(@record_name, {id: item[:id], created: item[:created], \
+                last_modified:  item[:last_modified]}, '') do
+              item[:body].each{|name,value| xml.send name, value}
+            end
+          end
+
+        end
+      end # end of if @records
     end
 
-    @doc = Rexle.new builder.to_xml
+    @doc = Rexle.new a
 
   end
 
