@@ -8,7 +8,7 @@ require 'ostruct'
 require 'dynarex-import'
 require 'line-tree'
 require 'rexle'
-require 'rexlebuilder'
+require 'rexle-builder'
 
 class Dynarex
 
