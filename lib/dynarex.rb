@@ -1,8 +1,7 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 
 # file: dynarex.rb
 
-require 'nokogiri'
 require 'open-uri'
 require 'ostruct'
 require 'dynarex-import'
@@ -106,9 +105,9 @@ EOF
     xslt_format = format_mask.to_s.gsub(/\s(?=\[!\w+\])/,'<xsl:text> </xsl:text>').gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
     xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
 
-    xslt  = Nokogiri::XSLT(xsl_buffer)
-    out = xslt.transform(Nokogiri::XML(@doc.to_s))
-    out.text
+    # jr 211111 the following statement has not yet been tested.
+    Rexslt.new(xsl_buffer, @doc.to_s).to_s
+    ""
 
   end
   
@@ -194,8 +193,8 @@ EOF
 
   def element(x)
     @doc.element x
-  end
-    
+  end    
+  
   def sort_by!(&element_blk)
     refresh_doc
     a = @doc.xpath('records/*').sort_by &element_blk
@@ -207,7 +206,7 @@ EOF
 
     load_records
     self
-  end
+  end  
   
   def record(id)
     recordx_to_record @doc.element("records/*[@id='#{id}']")
@@ -250,6 +249,7 @@ EOF
     params = Hash[raw_params.keys.map(&:to_sym).zip(raw_params.values)]
 
     fields = capture_fields(params)
+
     record = Rexle::Element.new @record_name
     fields.each do |k,v|
       element = Rexle::Element.new(k.to_s)              
@@ -257,7 +257,6 @@ EOF
       record.add element
     end
     
-
     id = (@doc.xpath('max(records/*/attribute::id)') || '0').succ unless id
     
     attributes = {id: id, created: Time.now.to_s, last_modified: nil}
@@ -274,9 +273,9 @@ EOF
   end
 
   
-  def display_xml
+  def display_xml(opt={})
     rebuild_doc()
-    @doc.xml #jr230711 pretty: true
+    @doc.xml(opt) #jr230711 pretty: true
   end
 
   def rebuild_doc
@@ -290,7 +289,7 @@ EOF
         xml.records do
 
           @records.each do |k, item|
-            p 'foo ' + item.inspect
+            #p 'foo ' + item.inspect
             xml.send(@record_name, {id: item[:id], created: item[:created], \
                 last_modified:  item[:last_modified]}, '') do
               item[:body].each{|name,value| xml.send name, value}
@@ -298,6 +297,8 @@ EOF
           end
 
         end
+      else
+        xml.records
       end # end of if @records
     end
 
@@ -369,26 +370,33 @@ EOF
   def dynarex_new(s)
     @schema = s
     ptrn = %r((\w+)\[?([^\]]+)?\]?\/(\w+)\(([^\)]+)\))
-    root_name, raw_summary, record_name, raw_fields = s.match(ptrn).captures
-    summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}  
-    create_find fields
-
-    reserved = %w(require parent)
-    raise 'reserved keyword' if (fields & reserved).any?
-
-lines =<<LINES
-#{root_name}
-  summary#{"\n" + ' ' * 4 + summary.join("\n" + ' ' * 4) unless summary.empty?}
-    recordx_type dynarex
-    format_mask #{fields.map {|x| "[!%s]" % x}.join(' ')}
-    schema #{s}
-  records
-LINES
     
+    if s.match(ptrn) then
+      @root_name, raw_summary, record_name, raw_fields = s.match(ptrn).captures 
+      summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}  
+      create_find fields
+      
+      reserved = %w(require parent)
+      raise 'reserved keyword' if (fields & reserved).any?
+      
+    else
+      ptrn = %r((\w+)\[?([^\]]+)?\]?)
+      @root_name, raw_summary = s.match(ptrn).captures
+      summary = raw_summary.split(/,/).map &:strip
+
+    end
+
+
+    format_mask = fields ? fields.map {|x| "[!%s]" % x}.join(' ') : ''
+
+    @summary = Hash[summary.zip([''] * summary.length).flatten.each_slice(2)\
+                    .map{|x1,x2| [x1.to_sym,x2]}]
+    @summary.merge!({recordx_type: 'dynarex', format_mask: format_mask, schema: s})
     @records = {}
     @flat_records = {}
     
-    LineTree.new(lines).to_xml
+    rebuild_doc
+
   end
 
   def attach_record_methods()
@@ -399,8 +407,8 @@ LINES
     
     if s[/</] then # xml
       buffer = s
-    elsif s[/\(/] # schema
-      buffer = dynarex_new s
+    elsif s[/[\[\(]/] # schema
+      dynarex_new(s)
     elsif s[/^https?:\/\//] then  # url
       buffer = Kernel.open(s, 'UserAgent' => 'Dynarex-Reader').read
     else # local file
@@ -408,18 +416,21 @@ LINES
       buffer = File.open(s,'r').read
     end
 
-    @doc = Rexle.new buffer
+
+    @doc = Rexle.new(buffer) unless @doc
+
     @schema = @doc.root.text('summary/schema')
     @root_name = @doc.root.name
+
     @summary = summary_to_h    
     @default_key = @doc.element('summary/default_key/text()') 
     @format_mask = @doc.element('summary/format_mask/text()')
    
     @fields = @format_mask.to_s.scan(/\[!(\w+)\]/).flatten.map(&:to_sym) if @format_mask 
 
-    if @schema then
+    if @schema and @schema.match(/(\w+)\(([^\)]+)/) then
       @record_name, raw_fields = @schema.match(/(\w+)\(([^\)]+)/).captures
-      @fields = raw_fields.split(',').map{|x| x.strip.to_sym} unless @fields      
+      @fields = raw_fields.split(',').map{|x| x.strip.to_sym} unless @fields
     end
 
     if @fields then

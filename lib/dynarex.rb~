@@ -1,13 +1,13 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 
 # file: dynarex.rb
 
-require 'nokogiri'
 require 'open-uri'
 require 'ostruct'
 require 'dynarex-import'
 require 'line-tree'
 require 'rexle'
+require 'rexle-builder'
 
 class Dynarex
 
@@ -86,7 +86,7 @@ class Dynarex
   def to_s
 xsl_buffer =<<EOF
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
-<xsl:output encoding="UTF-8"display_xml
+<xsl:output encoding="UTF-8"
             method="text"
             indent="no"
             omit-xml-declaration="yes"/>
@@ -101,20 +101,16 @@ EOF
 
     #format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
     format_mask = @doc.element('summary/format_mask/text()')
-    dynarex = Dynarex.new
-
-    s = %q(schema="companies/company(name, last_contacted, contact)" delimiter=" # ")
-    s.split(/(?=\w+\="[^"]+")/)
-    raw_a = s.scan(/\w+\="[^"]+"/)
-    a = raw_a.map{|x| r = x.split(/=/); [(r[0] + "=").to_sym, r[1][/^"(.*)"$/,1]] }
-    a.each{|name, value| dynarex.method(name).call(value)}
 
     xslt_format = format_mask.to_s.gsub(/\s(?=\[!\w+\])/,'<xsl:text> </xsl:text>').gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
     xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
 
-    xslt  = Nokogiri::XSLT(xsl_buffer)
-    out = xslt.transform(Nokogiri::XML(@doc.to_s))
-    out.text
+    #jr250711 xslt  = Nokogiri::XSLT(xsl_buffer)
+    #jr250711 out = xslt.transform(Nokogiri::XML(@doc.to_s))
+    #jr250811 puts 'xsl_buffer: ' + xsl_buffer
+    #jr250811 puts 'doc_to_s: ' + @doc.to_s
+    #jr260711 out.text
+    ""
 
   end
   
@@ -143,7 +139,8 @@ EOF
 #  dynarex.create name: Bob, age: 52
 
   def create(arg, id=nil)
-
+    
+    rebuild_doc()
     methods = {Hash: :hash_create, String: :create_from_line}
     send (methods[arg.class.to_s.to_sym]), arg, id
 
@@ -199,8 +196,8 @@ EOF
 
   def element(x)
     @doc.element x
-  end
-    
+  end    
+  
   def sort_by!(&element_blk)
     refresh_doc
     a = @doc.xpath('records/*').sort_by &element_blk
@@ -212,7 +209,7 @@ EOF
 
     load_records
     self
-  end
+  end  
   
   def record(id)
     recordx_to_record @doc.element("records/*[@id='#{id}']")
@@ -250,9 +247,12 @@ EOF
     OpenStruct.new(Hash[*@fields.zip(recordx.xpath("*/text()")).flatten])
   end
 
-  def hash_create(params={}, id=nil)
+  def hash_create(raw_params={}, id=nil)
+
+    params = Hash[raw_params.keys.map(&:to_sym).zip(raw_params.values)]
 
     fields = capture_fields(params)
+    #puts '@record_name : ' + @record_name.inspect
     record = Rexle::Element.new @record_name
     fields.each do |k,v|
       element = Rexle::Element.new(k.to_s)              
@@ -260,50 +260,59 @@ EOF
       record.add element
     end
     
-    id = (@doc.xpath('max(records/*/attribute::id)').to_i + 1).to_s unless id
-
+    #jr250811 puts 'id : ' + @doc.xpath("max(records/*/attribute::id)").inspect
+    #jr250811 puts '@doc '  + @doc.xml
+    #jr250811 puts 'company ' + @doc.xpath("records/company/@id").inspect
+    #jr250811 puts
+    id = (@doc.xpath('max(records/*/attribute::id)') || '0').succ unless id
+    #jr250811 puts 'id2 : ' + id.inspect
+    
     attributes = {id: id, created: Time.now.to_s, last_modified: nil}
     attributes.each {|k,v| record.add_attribute(k, v)}
 
+    #puts '@doc : ' + @doc.xml
     @doc.element('records').add record            
 
   end
 
   def capture_fields(params)
     fields = Hash[@fields.map {|x| [x,nil]}]
-    fields.keys.each {|key| fields[key] = params[key] if params.has_key? key}      
+    fields.keys.each {|key| fields[key] = params[key.to_sym] if params.has_key? key.to_sym}      
     fields
   end
 
   
-  def display_xml
+  def display_xml(opt={})
     rebuild_doc()
-    @doc.xml pretty: true
+    @doc.xml(opt) #jr230711 pretty: true
   end
 
   def rebuild_doc
-    
-    builder = Nokogiri::XML::Builder.new do |xml|
-      xml.send @root_name do
-        xml.summary do
-          @summary.each{|key,value| xml.send key, value}
-        end
-        if @records then
-          xml.records do
 
-            @records.each do |k, item|
-              xml.send(@record_name, id: item[:id], created: item[:created], \
-                  last_modified: item[:last_modified]) do
-                item[:body].each{|name,value| xml.send name, value}
-              end
-            end
-
-          end
-        end # end of if @records
+    xml = RexleBuilder.new
+    a = xml.send @root_name do
+      xml.summary do
+        @summary.each{|key,value| xml.send key, value}
       end
-    end
+      if @records then
+        xml.records do
 
-    @doc = Rexle.new builder.to_xml
+          @records.each do |k, item|
+            #p 'foo ' + item.inspect
+            xml.send(@record_name, {id: item[:id], created: item[:created], \
+                last_modified:  item[:last_modified]}, '') do
+              item[:body].each{|name,value| xml.send name, value}
+            end
+          end
+
+        end
+      else
+        xml.records
+      end # end of if @records
+    end
+    #puts 'fofofof'
+    #jr250811 puts 'a : ' + a.inspect
+    @doc = Rexle.new a
 
   end
 
@@ -371,26 +380,33 @@ EOF
   def dynarex_new(s)
     @schema = s
     ptrn = %r((\w+)\[?([^\]]+)?\]?\/(\w+)\(([^\)]+)\))
-    root_name, raw_summary, record_name, raw_fields = s.match(ptrn).captures
-    summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}  
-    create_find fields
-
-    reserved = %w(require parent)
-    raise 'reserved keyword' if (fields & reserved).any?
-
-lines =<<LINES
-#{root_name}
-  summary#{"\n" + ' ' * 4 + summary.join("\n" + ' ' * 4) unless summary.empty?}
-    recordx_type dynarex
-    format_mask #{fields.map {|x| "[!%s]" % x}.join(' ')}
-    schema #{s}
-  records
-LINES
     
+    if s.match(ptrn) then
+      @root_name, raw_summary, record_name, raw_fields = s.match(ptrn).captures 
+      summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}  
+      create_find fields
+      
+      reserved = %w(require parent)
+      raise 'reserved keyword' if (fields & reserved).any?
+      
+    else
+      ptrn = %r((\w+)\[?([^\]]+)?\]?)
+      @root_name, raw_summary = s.match(ptrn).captures
+      summary = raw_summary.split(/,/).map &:strip
+
+    end
+
+
+    format_mask = fields ? fields.map {|x| "[!%s]" % x}.join(' ') : ''
+    #puts 'summary: ' + summary.inspect
+    @summary = Hash[summary.zip([''] * summary.length).flatten.each_slice(2)\
+                    .map{|x1,x2| [x1.to_sym,x2]}]
+    @summary.merge!({recordx_type: 'dynarex', format_mask: format_mask, schema: s})
     @records = {}
     @flat_records = {}
     
-    LineTree.new(lines).to_xml
+    rebuild_doc
+
   end
 
   def attach_record_methods()
@@ -401,8 +417,8 @@ LINES
     
     if s[/</] then # xml
       buffer = s
-    elsif s[/\(/] # schema
-      buffer = dynarex_new s
+    elsif s[/[\[\(]/] # schema
+      dynarex_new(s)
     elsif s[/^https?:\/\//] then  # url
       buffer = Kernel.open(s, 'UserAgent' => 'Dynarex-Reader').read
     else # local file
@@ -410,18 +426,25 @@ LINES
       buffer = File.open(s,'r').read
     end
 
-    @doc = Rexle.new buffer
+
+    #@doc = Rexle.new buffer
+
+    @doc = Rexle.new(buffer) unless @doc
+    #puts 'rrr'
+    #puts '@doc : ' + @doc.xml
     @schema = @doc.root.text('summary/schema')
     @root_name = @doc.root.name
+    #puts 'f1'
     @summary = summary_to_h    
     @default_key = @doc.element('summary/default_key/text()') 
     @format_mask = @doc.element('summary/format_mask/text()')
    
     @fields = @format_mask.to_s.scan(/\[!(\w+)\]/).flatten.map(&:to_sym) if @format_mask 
-
-    if @schema then
+    #puts 'f2'
+    if @schema and @schema.match(/(\w+)\(([^\)]+)/) then
       @record_name, raw_fields = @schema.match(/(\w+)\(([^\)]+)/).captures
-      @fields = raw_fields.split(',').map{|x| x.strip.to_sym} unless @fields      
+      #puts 'fixx : ' + raw_fields.inspect
+      @fields = raw_fields.split(',').map{|x| x.strip.to_sym} unless @fields
     end
 
     if @fields then
@@ -431,6 +454,7 @@ LINES
     else
       @default_key = @doc.xpath('records/*/*').first.name
     end
+    #puts 'f4'
     
     if @doc.xpath('records/*').length > 0 then
       @record_name = @doc.element('records/*[1]').name            
