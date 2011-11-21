@@ -8,6 +8,7 @@ require 'dynarex-import'
 require 'line-tree'
 require 'rexle'
 require 'rexle-builder'
+require 'rexslt'
 
 class Dynarex
 
@@ -105,11 +106,8 @@ EOF
     xslt_format = format_mask.to_s.gsub(/\s(?=\[!\w+\])/,'<xsl:text> </xsl:text>').gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
     xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
 
-    #jr250711 xslt  = Nokogiri::XSLT(xsl_buffer)
-    #jr250711 out = xslt.transform(Nokogiri::XML(@doc.to_s))
-    #jr250811 puts 'xsl_buffer: ' + xsl_buffer
-    #jr250811 puts 'doc_to_s: ' + @doc.to_s
-    #jr260711 out.text
+    # jr 211111 the following statement has not yet been tested.
+    Rexslt.new(xsl_buffer, @doc.to_s).to_s
     ""
 
   end
@@ -252,7 +250,7 @@ EOF
     params = Hash[raw_params.keys.map(&:to_sym).zip(raw_params.values)]
 
     fields = capture_fields(params)
-    #puts '@record_name : ' + @record_name.inspect
+
     record = Rexle::Element.new @record_name
     fields.each do |k,v|
       element = Rexle::Element.new(k.to_s)              
@@ -260,17 +258,11 @@ EOF
       record.add element
     end
     
-    #jr250811 puts 'id : ' + @doc.xpath("max(records/*/attribute::id)").inspect
-    #jr250811 puts '@doc '  + @doc.xml
-    #jr250811 puts 'company ' + @doc.xpath("records/company/@id").inspect
-    #jr250811 puts
     id = (@doc.xpath('max(records/*/attribute::id)') || '0').succ unless id
-    #jr250811 puts 'id2 : ' + id.inspect
     
     attributes = {id: id, created: Time.now.to_s, last_modified: nil}
     attributes.each {|k,v| record.add_attribute(k, v)}
 
-    #puts '@doc : ' + @doc.xml
     @doc.element('records').add record            
 
   end
@@ -310,8 +302,7 @@ EOF
         xml.records
       end # end of if @records
     end
-    #puts 'fofofof'
-    #jr250811 puts 'a : ' + a.inspect
+
     @doc = Rexle.new a
 
   end
@@ -398,7 +389,7 @@ EOF
 
 
     format_mask = fields ? fields.map {|x| "[!%s]" % x}.join(' ') : ''
-    #puts 'summary: ' + summary.inspect
+
     @summary = Hash[summary.zip([''] * summary.length).flatten.each_slice(2)\
                     .map{|x1,x2| [x1.to_sym,x2]}]
     @summary.merge!({recordx_type: 'dynarex', format_mask: format_mask, schema: s})
@@ -427,23 +418,19 @@ EOF
     end
 
 
-    #@doc = Rexle.new buffer
-
     @doc = Rexle.new(buffer) unless @doc
-    #puts 'rrr'
-    #puts '@doc : ' + @doc.xml
+
     @schema = @doc.root.text('summary/schema')
     @root_name = @doc.root.name
-    #puts 'f1'
+
     @summary = summary_to_h    
     @default_key = @doc.element('summary/default_key/text()') 
     @format_mask = @doc.element('summary/format_mask/text()')
    
     @fields = @format_mask.to_s.scan(/\[!(\w+)\]/).flatten.map(&:to_sym) if @format_mask 
-    #puts 'f2'
+
     if @schema and @schema.match(/(\w+)\(([^\)]+)/) then
       @record_name, raw_fields = @schema.match(/(\w+)\(([^\)]+)/).captures
-      #puts 'fixx : ' + raw_fields.inspect
       @fields = raw_fields.split(',').map{|x| x.strip.to_sym} unless @fields
     end
 
@@ -454,7 +441,6 @@ EOF
     else
       @default_key = @doc.xpath('records/*/*').first.name
     end
-    #puts 'f4'
     
     if @doc.xpath('records/*').length > 0 then
       @record_name = @doc.element('records/*[1]').name            

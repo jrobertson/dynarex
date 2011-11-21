@@ -8,6 +8,7 @@ require 'dynarex-import'
 require 'line-tree'
 require 'rexle'
 require 'rexle-builder'
+require 'rexslt'
 
 class Dynarex
 
@@ -107,7 +108,6 @@ EOF
 
     # jr 211111 the following statement has not yet been tested.
     Rexslt.new(xsl_buffer, @doc.to_s).to_s
-    ""
 
   end
   
