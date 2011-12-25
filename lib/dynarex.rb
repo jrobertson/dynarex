@@ -25,10 +25,11 @@ class Dynarex
   def initialize(location=nil)
     @delimiter = ' '
     open(location) if location
+
   end
 
   def add(x)
-    @doc.add x
+    @doc.root.add x
     load_records
     self
   end
@@ -42,6 +43,7 @@ class Dynarex
     o = {xml: '', schema: ''}.merge(options)
     h = {xml: o[:xml], schema: @schema, foreign_schema: o[:schema]}
     buffer = DynarexImport.new(h).to_xml
+
     open(buffer)
     self
   end
@@ -100,17 +102,22 @@ xsl_buffer =<<EOF
 </xsl:stylesheet>
 EOF
 
-    #format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
-    format_mask = @doc.element('summary/format_mask/text()')
 
+    #format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
+    format_mask = @doc.root.element('summary/format_mask/text()')
     xslt_format = format_mask.to_s.gsub(/\s(?=\[!\w+\])/,'<xsl:text> </xsl:text>').gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
+    
     xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
 
-    # jr 211111 the following statement has not yet been tested.
-    Rexslt.new(xsl_buffer, @doc.to_s).to_s
+    #jr250711 xslt  = Nokogiri::XSLT(xsl_buffer)
+    #jr250711 out = xslt.transform(Nokogiri::XML(@doc.to_s))
+    #jr250811 puts 'xsl_buffer: ' + xsl_buffer
+    #jr250811 puts 'doc_to_s: ' + @doc.to_s
+    #jr260711 out.text
+    #jr231211 Rexslt.new(xsl_buffer, @doc.to_s).to_s
 
   end
-  
+
   def to_xml() 
     display_xml()
   end
@@ -144,7 +151,7 @@ EOF
     load_records
     self
   end
-  
+
 #Create a record from a string, given the dynarex document contains a format mask.
 #  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
 #  dynarex.create_from_line 'Tracy 37 15-Jun-1972'  
@@ -167,7 +174,7 @@ EOF
 
 
     # for each field update each record field
-    record = @doc.element("records/#{@record_name}[@id='#{id.to_s}']")    
+    record = @doc.root.element("records/#{@record_name}[@id='#{id.to_s}']")    
     fields.each {|k,v| record.element(k.to_s).text = v if v}
     record.add_attribute(last_modified: Time.now.to_s)
 
@@ -177,6 +184,8 @@ EOF
 
   end
 
+
+  
 #Delete a record.
 #  dyarex.delete 3      # deletes record with id 3
   
@@ -192,16 +201,18 @@ EOF
   end
 
   def element(x)
-    @doc.element x
+    @doc.root.element x
   end    
   
   def sort_by!(&element_blk)
     refresh_doc
-    a = @doc.xpath('records/*').sort_by &element_blk
-    @doc.delete('records')
+    a = @doc.root.xpath('records/*').sort_by &element_blk
+    @doc.root.delete('records')
 
     records = Rexle::Element.new 'records'
+
     a.each {|record| records.add record}
+
     @doc.root.add records
 
     load_records
@@ -209,15 +220,15 @@ EOF
   end  
   
   def record(id)
-    recordx_to_record @doc.element("records/*[@id='#{id}']")
+    recordx_to_record @doc.root.element("records/*[@id='#{id}']")
   end
   
   def record_exists?(id)
-    !@doc.element("records/*[@id='#{id}']").nil?
+    !@doc.root.element("records/*[@id='#{id}']").nil?
   end
 
   def xpath(x)
-    @doc.xpath x
+    @doc.root.xpath x
   end
 
   private
@@ -232,12 +243,12 @@ EOF
   end
 
   def findx_by(field, value)
-    r = @doc.element("records/*[#{field}='#{value}']")
+    r = @doc.root.element("records/*[#{field}='#{value}']")
     r ? recordx_to_record(r) : nil
   end
 
   def findx_all_by(field, value)
-    @doc.xpath("records/*[#{field}='#{value}']").map {|x| recordx_to_record x}
+    @doc.root.xpath("records/*[#{field}='#{value}']").map {|x| recordx_to_record x}
   end
 
   def recordx_to_record(recordx)
@@ -248,21 +259,25 @@ EOF
 
     params = Hash[raw_params.keys.map(&:to_sym).zip(raw_params.values)]
 
-    fields = capture_fields(params)
-
+    fields = capture_fields(params)    
     record = Rexle::Element.new @record_name
+
     fields.each do |k,v|
       element = Rexle::Element.new(k.to_s)              
       element.text = v if v
-      record.add element
+      record.add element if record
     end
     
-    id = (@doc.xpath('max(records/*/attribute::id)') || '0').succ unless id
+    #jr250811 puts 'id : ' + @doc.root.xpath("max(records/*/attribute::id)").inspect
+    #jr250811 puts '@doc '  + @doc.xml
+    #jr250811 puts 'company ' + @doc.root.xpath("records/company/@id").inspect
+    #jr250811 puts
+    id = (@doc.root.xpath('max(records/*/attribute::id)') || '0').succ unless id
+    #jr250811 puts 'id2 : ' + id.inspect
     
     attributes = {id: id, created: Time.now.to_s, last_modified: nil}
     attributes.each {|k,v| record.add_attribute(k, v)}
-
-    @doc.element('records').add record            
+    @doc.root.element('records').add record            
 
   end
 
@@ -303,7 +318,6 @@ EOF
     end
 
     @doc = Rexle.new a
-
   end
 
   alias refresh_doc display_xml
@@ -317,7 +331,7 @@ EOF
     end
 
     # if records already exist find the max id
-    i = @doc.xpath('max(records/*/attribute::id)').to_i
+    i = @doc.root.xpath('max(records/*/attribute::id)').to_i
 
     
     # 'a' and 'a_split' just used for validation
@@ -417,14 +431,16 @@ EOF
     end
 
 
+    #@doc = Rexle.new buffer
+
     @doc = Rexle.new(buffer) unless @doc
 
     @schema = @doc.root.text('summary/schema')
     @root_name = @doc.root.name
-
     @summary = summary_to_h    
-    @default_key = @doc.element('summary/default_key/text()') 
-    @format_mask = @doc.element('summary/format_mask/text()')
+
+    @default_key = @doc.root.element('summary/default_key/text()') 
+    @format_mask = @doc.root.element('summary/format_mask/text()')
    
     @fields = @format_mask.to_s.scan(/\[!(\w+)\]/).flatten.map(&:to_sym) if @format_mask 
 
@@ -438,11 +454,11 @@ EOF
       # load the record query handler methods
       attach_record_methods
     else
-      @default_key = @doc.xpath('records/*/*').first.name
+      @default_key = @doc.root.xpath('records/*/*').first.name
     end
     
-    if @doc.xpath('records/*').length > 0 then
-      @record_name = @doc.element('records/*[1]').name            
+    if @doc.root.xpath('records/*').length > 0 then
+      @record_name = @doc.root.element('records/*[1]').name            
       load_records 
     end
 
@@ -466,9 +482,9 @@ EOF
  
   def records_to_h()
 
-    i = @doc.xpath('max(records/*/attribute::id)') || 0
+    i = @doc.root.xpath('max(records/*/attribute::id)') || 0
     
-    @doc.xpath('records/*').inject({}) do |result,row|
+    @doc.root.xpath('records/*').inject({}) do |result,row|
 
       created = Time.now.to_s
       last_modified = ''
@@ -492,7 +508,7 @@ EOF
 
   def summary_to_h
 
-    @doc.xpath('summary/*').inject({}) do |r,node|
+    @doc.root.xpath('summary/*').inject({}) do |r,node|
       r.merge node.name.to_s.to_sym => node.text.to_s
     end
   end

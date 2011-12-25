@@ -108,7 +108,6 @@ EOF
 
     # jr 211111 the following statement has not yet been tested.
     Rexslt.new(xsl_buffer, @doc.to_s).to_s
-    ""
 
   end
   
