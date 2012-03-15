@@ -237,7 +237,7 @@ EOF
     @doc.root.xpath x
   end
   
-  def xslt_schema(s)
+  def xslt_schema=(s)
     @dynarex_xslt.xslt_schema = s
     self
   end  
