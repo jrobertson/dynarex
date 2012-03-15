@@ -9,7 +9,7 @@ require 'line-tree'
 require 'rexle'
 require 'rexle-builder'
 require 'rexslt'
-require 'recordx-xslt'
+require 'dynarex-xslt'
 
 class Dynarex
 
@@ -26,7 +26,6 @@ class Dynarex
   def initialize(location=nil)
     @delimiter = ' '
     open(location) if location
-    @dynarex_xslt = RecordxXSLT.new
   end
 
   def add(x)
@@ -229,18 +228,13 @@ EOF
   end
 
   def to_xslt()    
-    @dynarex_xslt.schema = @schema
-    @dynarex_xslt.to_xslt
+    DynarexXSLT.new(schema: @schema, xslt_schema: @xslt_schema).to_xslt
   end
   
   def xpath(x)
     @doc.root.xpath x
   end
   
-  def xslt_schema(s)
-    @dynarex_xslt.xslt_schema = s
-    self
-  end  
 
   private
 
