@@ -118,8 +118,8 @@ EOF
 
   end
 
-  def to_xml() 
-    display_xml()
+  def to_xml(opt={}) 
+    display_xml(opt)
   end
   
 #Save the document to a local file.  

@@ -9,10 +9,11 @@ require 'line-tree'
 require 'rexle'
 require 'rexle-builder'
 require 'rexslt'
+require 'recordx-xslt'
 
 class Dynarex
 
-  attr_accessor :format_mask, :delimiter, :schema
+  attr_accessor :format_mask, :delimiter, :xslt_schema, :schema
   
 #Create a new dynarex document from 1 of the following options:
 #* a local file path
@@ -25,7 +26,7 @@ class Dynarex
   def initialize(location=nil)
     @delimiter = ' '
     open(location) if location
-
+    @dynarex_xslt = RecordxXSLT.new
   end
 
   def add(x)
@@ -227,9 +228,19 @@ EOF
     !@doc.root.element("records/*[@id='#{id}']").nil?
   end
 
+  def to_xslt()    
+    @dynarex_xslt.schema = @schema
+    @dynarex_xslt.to_xslt
+  end
+  
   def xpath(x)
     @doc.root.xpath x
   end
+  
+  def xslt_schema(s)
+    @dynarex_xslt.xslt_schema = s
+    self
+  end  
 
   private
 
