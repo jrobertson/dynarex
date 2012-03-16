@@ -227,14 +227,24 @@ EOF
     !@doc.root.element("records/*[@id='#{id}']").nil?
   end
 
-  def to_xslt()    
-    DynarexXSLT.new(schema: @schema, xslt_schema: @xslt_schema).to_xslt
+  def to_xslt(opt={})    
+    h = {limit: -1}.merge(opt)
+    xslt = DynarexXSLT.new(schema: @schema, xslt_schema: @xslt_schema).to_xslt
+
+    if h[:limit] > 0 then
+      s = "[position() &lt; #{h[:limit]}]"
+      doc = Rexle.new(xslt)
+      e = doc.root.element('xsl:template/channel/*[2]')
+      e.attributes[:select] = e.attributes[:select] + s      
+      return doc.xml pretty: true
+    end
+    
+    return xslt
   end
   
   def xpath(x)
     @doc.root.xpath x
-  end
-  
+  end  
 
   private
 
