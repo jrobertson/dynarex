@@ -371,10 +371,10 @@ EOF
     end
 
     raw_summary = schema[/\[([^\]]+)/,1]
+    raw_lines = buffer.strip.split(/\r?\n|\r(?!\n)/)    
     
     if raw_summary then
       a_summary = raw_summary.split(',').map(&:strip)
-      raw_lines = buffer.strip.split(/\r?\n|\r(?!\n)/)
       
       @summary = {}
       while raw_lines.first[/#{a_summary.join('|')}:\s+\w+/] do      

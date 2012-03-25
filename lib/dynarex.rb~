@@ -370,17 +370,21 @@ EOF
       t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
     end
 
-    a_summary = schema[/\[([^\]]+)/,1].split(',').map(&:strip)
-    raw_lines = buffer.strip.split(/\r?\n|\r(?!\n)/)
+    raw_summary = schema[/\[([^\]]+)/,1]
     
-    @summary = {}
-    while raw_lines.first[/#{a_summary.join('|')}:\s+\w+/] do      
-      label, val = raw_lines.shift.match(/(\w+):\s+([^$]+)$/).captures
-      @summary[label] = val
+    if raw_summary then
+      a_summary = raw_summary.split(',').map(&:strip)
+      raw_lines = buffer.strip.split(/\r?\n|\r(?!\n)/)
+      
+      @summary = {}
+      while raw_lines.first[/#{a_summary.join('|')}:\s+\w+/] do      
+        label, val = raw_lines.shift.match(/(\w+):\s+([^$]+)$/).captures
+        @summary[label] = val
+      end
     end
+    
     lines = raw_lines.map {|x|x.strip.match(/#{t}/).captures}
     
-
     a = lines.map do|x| 
       created = Time.now.to_s
       
