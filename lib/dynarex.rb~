@@ -382,6 +382,9 @@ EOF
         @summary[label] = val
       end
     end
+
+    @summary['schema'] = @schema
+    @summary['format_mask'] = @format_mask
     
     lines = raw_lines.map {|x|x.strip.match(/#{t}/).captures}
     

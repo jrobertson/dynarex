@@ -383,6 +383,7 @@ EOF
       end
     end
 
+    @summary['recordx_type'] = 'dynarex'
     @summary['schema'] = @schema
     @summary['format_mask'] = @format_mask
     
