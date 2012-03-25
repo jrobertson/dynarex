@@ -124,11 +124,12 @@ EOF
   
 #Save the document to a local file.  
   
-  def save(filepath=nil)
+  def save(filepath=nil, opt={})
     filepath ||= @local_filepath
     @local_filepath = filepath
-    xml = display_xml()
-    File.open(filepath,'w'){|f| f.write xml}
+    xml = display_xml(opt)
+    buffer = block_given? ? yield(xml) : xml
+    File.open(filepath,'w'){|f| f.write buffer }
   end
   
 #Parses 1 or more lines of text to create or update existing records.

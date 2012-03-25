@@ -56,7 +56,11 @@ class Dynarex
     @format_mask = s
     @summary[:format_mask] = @format_mask
   end
-     
+  
+  def inspect()
+    "<object #%s>" % [self.object_id]
+  end
+  
   def schema=(s)
     open s
   end
@@ -243,6 +247,10 @@ EOF
     return xslt
   end
   
+  def to_rss(opt={}, summary={})
+    doc = Rexle.new('<rss version="2.0">' + self.to_xslt(opt) + '</rss>')
+  end
+  
   def xpath(x)
     @doc.root.xpath x
   end  
@@ -280,7 +288,8 @@ EOF
 
     fields.each do |k,v|
       element = Rexle::Element.new(k.to_s)              
-      element.text = v if v
+      element.root.text = v if v
+
       record.add element if record
     end
     
@@ -361,7 +370,16 @@ EOF
       t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
     end
 
-    lines = buffer.strip.split(/\r?\n|\r(?!\n)/).map {|x|x.strip.match(/#{t}/).captures}
+    a_summary = schema[/\[([^\]]+)/,1].split(',').map(&:strip)
+    raw_lines = buffer.strip.split(/\r?\n|\r(?!\n)/)
+    
+    @summary = {}
+    while raw_lines.first[/#{a_summary.join('|')}:\s+\w+/] do      
+      label, val = raw_lines.shift.match(/(\w+):\s+([^$]+)$/).captures
+      @summary[label] = val
+    end
+    lines = raw_lines.map {|x|x.strip.match(/#{t}/).captures}
+    
 
     a = lines.map do|x| 
       created = Time.now.to_s
