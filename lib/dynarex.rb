@@ -383,9 +383,9 @@ EOF
       end
     end
 
-    @summary['recordx_type'] = 'dynarex'
-    @summary['schema'] = @schema
-    @summary['format_mask'] = @format_mask
+    @summary[:recordx_type] = 'dynarex'
+    @summary[:schema] = @schema
+    @summary[:format_mask] = @format_mask
     
     lines = raw_lines.map {|x|x.strip.match(/#{t}/).captures}
     
