@@ -15,6 +15,23 @@ class Dynarex
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema
   
+
+  class Record
+
+    def initialize(callerx, id, h={})
+
+      @callerx, @id = callerx, id
+      
+      methods = h.to_a.map do |k,v| 
+        name, val = k.to_s, v
+        "def #{name}=(s) @#{name} = s.to_s; @callerx.update(@id, #{name}: s.to_s) end\n\
+          def #{name}() @#{name} end\n\
+          @#{name} = '#{val}'"
+      end
+      self.instance_eval methods.join("\n")
+    end
+  end  
+  
 #Create a new dynarex document from 1 of the following options:
 #* a local file path
 #* a URL
@@ -57,7 +74,7 @@ class Dynarex
     @summary[:format_mask] = @format_mask
   end
   
-  def inspect()
+  def inspect2()
     "<object #%s>" % [self.object_id]
   end
   
@@ -223,6 +240,33 @@ EOF
     load_records
     self
   end  
+
+  def rebuild_doc
+
+    xml = RexleBuilder.new
+    a = xml.send @root_name do
+      xml.summary do
+        @summary.each{|key,value| xml.send key, value}
+      end
+      if @records then
+        xml.records do
+
+          @records.each do |k, item|
+            #p 'foo ' + item.inspect
+            xml.send(@record_name, {id: item[:id], created: item[:created], \
+                last_modified:  item[:last_modified]}, '') do
+              item[:body].each{|name,value| xml.send name, value}
+            end
+          end
+
+        end
+      else
+        xml.records
+      end # end of if @records
+    end
+
+    @doc = Rexle.new a
+  end
   
   def record(id)
     recordx_to_record @doc.root.element("records/*[@id='#{id}']")
@@ -276,7 +320,8 @@ EOF
   end
 
   def recordx_to_record(recordx)
-    OpenStruct.new(Hash[*@fields.zip(recordx.xpath("*/text()")).flatten])
+    Record.new(self, recordx.attributes[:id], \
+               Hash[*@fields.zip(recordx.xpath("*/text()")).flatten])
   end
 
   def hash_create(raw_params={}, id=nil)
@@ -318,32 +363,6 @@ EOF
     @doc.xml(opt) #jr230711 pretty: true
   end
 
-  def rebuild_doc
-
-    xml = RexleBuilder.new
-    a = xml.send @root_name do
-      xml.summary do
-        @summary.each{|key,value| xml.send key, value}
-      end
-      if @records then
-        xml.records do
-
-          @records.each do |k, item|
-            #p 'foo ' + item.inspect
-            xml.send(@record_name, {id: item[:id], created: item[:created], \
-                last_modified:  item[:last_modified]}, '') do
-              item[:body].each{|name,value| xml.send name, value}
-            end
-          end
-
-        end
-      else
-        xml.records
-      end # end of if @records
-    end
-
-    @doc = Rexle.new a
-  end
 
   alias refresh_doc display_xml
 
@@ -460,6 +479,7 @@ EOF
   end
   
   def open(s)
+
     
     if s[/</] then # xml
       buffer = s
