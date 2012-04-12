@@ -333,7 +333,7 @@ EOF
 
     fields.each do |k,v|
       element = Rexle::Element.new(k.to_s)              
-      element.root.text = v if v
+      element.root.text = v.to_s if v
 
       record.add element if record
     end
