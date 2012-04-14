@@ -10,27 +10,12 @@ require 'rexle'
 require 'rexle-builder'
 require 'rexslt'
 require 'dynarex-xslt'
+require 'recordx'
 
 class Dynarex
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema
   
-
-  class Record
-
-    def initialize(callerx, id, h={})
-
-      @callerx, @id = callerx, id
-      
-      methods = h.to_a.map do |k,v| 
-        name, val = k.to_s, v
-        "def #{name}=(s) @#{name} = s.to_s; @callerx.update(@id, #{name}: s.to_s) end\n\
-          def #{name}() @#{name} end\n\
-          @#{name} = '#{val}'"
-      end
-      self.instance_eval methods.join("\n")
-    end
-  end  
   
 #Create a new dynarex document from 1 of the following options:
 #* a local file path
@@ -320,7 +305,7 @@ EOF
   end
 
   def recordx_to_record(recordx)
-    Record.new(self, recordx.attributes[:id], \
+    RecordX.new(self, recordx.attributes[:id], \
                Hash[*@fields.zip(recordx.xpath("*/text()")).flatten])
   end
 
