@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'dynarex'
-  s.version = '1.1.20'
+  s.version = '1.1.21'
   s.summary = 'dynarex'
   s.authors = ['James Robertson']
   s.files = Dir['lib/**/*.rb']
@@ -10,4 +10,5 @@ Gem::Specification.new do |s|
   s.add_dependency('rexle-builder')
   s.add_dependency('rexslt')
   s.add_dependency('dynarex-xslt')
+  s.add_dependency('recordx')
 end
