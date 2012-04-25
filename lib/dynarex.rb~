@@ -305,7 +305,7 @@ EOF
   end
 
   def recordx_to_record(recordx)
-    Record.new(self, recordx.attributes[:id], \
+    RecordX.new(self, recordx.attributes[:id], \
                Hash[*@fields.zip(recordx.xpath("*/text()")).flatten])
   end
 

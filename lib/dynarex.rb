@@ -3,7 +3,6 @@
 # file: dynarex.rb
 
 require 'open-uri'
-require 'ostruct'
 require 'dynarex-import'
 require 'line-tree'
 require 'rexle'
@@ -11,6 +10,7 @@ require 'rexle-builder'
 require 'rexslt'
 require 'dynarex-xslt'
 require 'recordx'
+require 'rxraw-lineparser'
 
 class Dynarex
 
@@ -59,7 +59,7 @@ class Dynarex
     @summary[:format_mask] = @format_mask
   end
   
-  def inspect2()
+  def inspect()
     "<object #%s>" % [self.object_id]
   end
   
@@ -191,7 +191,6 @@ EOF
 
   end
 
-
   
 #Delete a record.
 #  dyarex.delete 3      # deletes record with id 3
@@ -305,8 +304,7 @@ EOF
   end
 
   def recordx_to_record(recordx)
-    RecordX.new(self, recordx.attributes[:id], \
-               Hash[*@fields.zip(recordx.xpath("*/text()")).flatten])
+    RecordX.new(Hash[*@fields.zip(recordx.xpath("*/text()")).flatten], self, recordx.attributes[:id])
   end
 
   def hash_create(raw_params={}, id=nil)
@@ -323,12 +321,7 @@ EOF
       record.add element if record
     end
     
-    #jr250811 puts 'id : ' + @doc.root.xpath("max(records/*/attribute::id)").inspect
-    #jr250811 puts '@doc '  + @doc.xml
-    #jr250811 puts 'company ' + @doc.root.xpath("records/company/@id").inspect
-    #jr250811 puts
     id = (@doc.root.xpath('max(records/*/attribute::id)') || '0').succ unless id
-    #jr250811 puts 'id2 : ' + id.inspect
     
     attributes = {id: id, created: Time.now.to_s, last_modified: nil}
     attributes.each {|k,v| record.add_attribute(k, v)}
@@ -341,7 +334,6 @@ EOF
     fields.keys.each {|key| fields[key] = params[key.to_sym] if params.has_key? key.to_sym}      
     fields
   end
-
   
   def display_xml(opt={})
     rebuild_doc()
@@ -366,7 +358,7 @@ EOF
     # 'a' and 'a_split' just used for validation
     a = @format_mask.scan(/\[!\w+\]/)
     a_split = @format_mask.split(/\[!\w+\]/)
-    
+
     if a.length == 2 and a_split[1].length == 1 then  
       t = "([^#{a_split[1]}]+)" + a_split[1] + "(.*)"
     else
@@ -390,8 +382,11 @@ EOF
     @summary[:recordx_type] = 'dynarex'
     @summary[:schema] = @schema
     @summary[:format_mask] = @format_mask
-    
-    lines = raw_lines.map {|x|x.strip.match(/#{t}/).captures}
+
+    lines = raw_lines.map do |x|
+      field_names, field_values = RXRawLineParser.new(@format_mask).parse(x)
+      field_values
+    end
     
     a = lines.map do|x| 
       created = Time.now.to_s
@@ -399,7 +394,7 @@ EOF
       h = Hash[@fields.zip(x)]
       [h[@default_key], {id: '', created: created, last_modified: '', body: h}]
     end
-    
+
     h2 = Hash[a]
     
     #replace the existing records hash
@@ -418,7 +413,7 @@ EOF
         h[key] = item.clone
       end      
     end    
-    
+
     h.each {|key, item| h.delete(key) if not h2.has_key? key}
     #refresh_doc
     #load_records  
@@ -446,7 +441,6 @@ EOF
 
     end
 
-
     format_mask = fields ? fields.map {|x| "[!%s]" % x}.join(' ') : ''
 
     @summary = Hash[summary.zip([''] * summary.length).flatten.each_slice(2)\
@@ -464,7 +458,6 @@ EOF
   end
   
   def open(s)
-
     
     if s[/</] then # xml
       buffer = s
@@ -476,9 +469,6 @@ EOF
       @local_filepath = s
       buffer = File.open(s,'r').read
     end
-
-
-    #@doc = Rexle.new buffer
 
     @doc = Rexle.new(buffer) unless @doc
 
@@ -503,7 +493,7 @@ EOF
     else
       @default_key = @doc.root.xpath('records/*/*').first.name
     end
-    
+
     if @doc.root.xpath('records/*').length > 0 then
       @record_name = @doc.root.element('records/*[1]').name            
       load_records 

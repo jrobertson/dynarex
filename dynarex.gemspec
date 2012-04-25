@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'dynarex'
-  s.version = '1.1.21'
+  s.version = '1.1.22'
   s.summary = 'dynarex'
   s.authors = ['James Robertson']
   s.files = Dir['lib/**/*.rb']
