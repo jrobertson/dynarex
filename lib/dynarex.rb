@@ -358,7 +358,8 @@ EOF
     i = @doc.root.xpath('max(records/*/attribute::id)').to_i
     
     raw_summary = schema[/\[([^\]]+)/,1]
-    raw_lines = buffer.strip.split(/\r?\n|\r(?!\n)/)    
+    raw_lines = buffer.gsub(/^\s*#[^\n]+/,'').gsub(/\n\n/,"\n")\
+        .strip.split(/\r?\n|\r(?!\n)/)
     
     if raw_summary then
       a_summary = raw_summary.split(',').map(&:strip)
