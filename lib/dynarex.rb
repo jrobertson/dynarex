@@ -348,24 +348,15 @@ EOF
 
     if raw_header then
       header = raw_header[/<?dynarex (.*)?>/,1]
-      header.scan(/\w+\="[^"]+\"/).map{|x| r = x.split(/=/); [(r[0] + "=").to_sym, r[1][/^"(.*)"$/,1]] }.each {|name, value|      self.method(name).call(value)}
+      header.scan(/\w+\="[^"]+\"/).map\
+          {|x| r = x.split(/=/,2); [(r[0] + "=").to_sym, \
+              r[1][/^"(.*)"$/,1]] }.each \
+                {|name, value|      self.method(name).call(value)}
     end
 
     # if records already exist find the max id
     i = @doc.root.xpath('max(records/*/attribute::id)').to_i
-
     
-    # 'a' and 'a_split' just used for validation
-    a = @format_mask.scan(/\[!\w+\]/)
-    a_split = @format_mask.split(/\[!\w+\]/)
-
-    if a.length == 2 and a_split[1].length == 1 then  
-      t = "([^#{a_split[1]}]+)" + a_split[1] + "(.*)"
-    else
-      # convert the format mask into a friendly reg exp string
-      t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
-    end
-
     raw_summary = schema[/\[([^\]]+)/,1]
     raw_lines = buffer.strip.split(/\r?\n|\r(?!\n)/)    
     
@@ -471,7 +462,6 @@ EOF
     end
 
     @doc = Rexle.new(buffer) unless @doc
-
     @schema = @doc.root.text('summary/schema')
     @root_name = @doc.root.name
     @summary = summary_to_h    
