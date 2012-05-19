@@ -246,7 +246,7 @@ EOF
             xml.send(@record_name, {id: item[:id], created: item[:created], \
                 last_modified:  item[:last_modified]}, '') do
               item[:body].each do |name,value| 
-                name.prepend '._' if reserved_keywords.include? name.to_sym
+                name = name.to_s.prepend('._').to_sym if reserved_keywords.include? name
                 xml.send name, value
               end
             end
