@@ -227,6 +227,12 @@ EOF
 
   def rebuild_doc
 
+    reserved_keywords = ( 
+                          Object.public_methods | \
+                          Kernel.public_methods | \
+                          public_methods + [:method_missing]
+                        )
+    
     xml = RexleBuilder.new
     a = xml.send @root_name do
       xml.summary do
@@ -239,7 +245,10 @@ EOF
             #p 'foo ' + item.inspect
             xml.send(@record_name, {id: item[:id], created: item[:created], \
                 last_modified:  item[:last_modified]}, '') do
-              item[:body].each{|name,value| xml.send name, value}
+              item[:body].each do |name,value| 
+                name.prepend '._' if reserved_keywords.include? name.to_sym
+                xml.send name, value
+              end
             end
           end
 
