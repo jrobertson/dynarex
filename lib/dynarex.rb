@@ -26,8 +26,9 @@ class Dynarex
 #    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
 
   def initialize(location=nil)
-    @delimiter = ' '
+    @delimiter = ' '   
     open(location) if location
+    @dirty_flag = false
   end
 
   def add(x)
@@ -76,11 +77,13 @@ class Dynarex
 #Return a Hash (which can be edited) containing all records.
   
   def records
+    load_records if @dirty_flag == true
     @records
   end
   
 #Returns a ready-only snapshot of records as a simple Hash.  
   def flat_records
+    load_records if @dirty_flag == true
     @flat_records
   end
   
@@ -151,11 +154,12 @@ EOF
 
   def create(arg, id=nil)
     
-    rebuild_doc()
+    #jr190512 rebuild_doc()
     methods = {Hash: :hash_create, String: :create_from_line}
     send (methods[arg.class.to_s.to_sym]), arg, id
 
-    load_records
+    #jr190512 load_records
+    @dirty_flag = true
     self
   end
 
@@ -185,7 +189,7 @@ EOF
     fields.each {|k,v| record.element(k.to_s).text = v if v}
     record.add_attribute(last_modified: Time.now.to_s)
 
-    load_records
+    @dirty_flag = true
 
     self
 
@@ -202,7 +206,7 @@ EOF
     else
       @doc.delete x
     end
-    load_records
+    @dirty_flag = true
     self
   end
 
@@ -246,7 +250,8 @@ EOF
             xml.send(@record_name, {id: item[:id], created: item[:created], \
                 last_modified:  item[:last_modified]}, '') do
               item[:body].each do |name,value| 
-                name = name.to_s.prepend('._').to_sym if reserved_keywords.include? name
+                #name = name.to_s.prepend('._').to_sym if reserved_keywords.include? name
+                name = ('._' + name.to_s).to_sym if reserved_keywords.include? name
                 xml.send name, value
               end
             end
@@ -257,7 +262,7 @@ EOF
         xml.records
       end # end of if @records
     end
-
+    #puts 'a : ' + a.inspect
     @doc = Rexle.new a
   end
   
@@ -284,8 +289,10 @@ EOF
     return xslt
   end
   
-  def to_rss(opt={}, summary={})
-    doc = Rexle.new('<rss version="2.0">' + self.to_xslt(opt) + '</rss>')
+  def to_rss(opt={}, xslt=nil)
+    xslt ||= self.to_xslt(opt)
+    xml = Rexslt.new(xslt, self.to_xml).to_xml
+    "<rss version='2.0'>%s</rss>" % xml
   end
   
   def xpath(x)
@@ -304,6 +311,7 @@ EOF
   end
 
   def findx_by(field, value)
+    (load_records; rebuild_doc) if @dirty_flag == true
     r = @doc.root.element("records/*[#{field}='#{value}']")
     r ? recordx_to_record(r) : nil
   end
@@ -345,6 +353,7 @@ EOF
   end
   
   def display_xml(opt={})
+    load_records if @dirty_flag == true
     rebuild_doc()
     @doc.xml(opt) #jr230711 pretty: true
   end
@@ -369,7 +378,7 @@ EOF
     raw_summary = schema[/\[([^\]]+)/,1]
     raw_lines = buffer.gsub(/^\s*#[^\n]+/,'').gsub(/\n\n/,"\n")\
         .strip.split(/\r?\n|\r(?!\n)/)
-    
+
     if raw_summary then
       a_summary = raw_summary.split(',').map(&:strip)
       
@@ -511,6 +520,7 @@ EOF
       
     #Returns a ready-only snapshot of records as a simple Hash.
     @flat_records = @records.values.map{|x| x[:body]}
+    @dirty_flag = false
   end
 
   def display()
