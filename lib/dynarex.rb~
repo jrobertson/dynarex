@@ -276,23 +276,25 @@ EOF
 
   def to_xslt(opt={})    
     h = {limit: -1}.merge(opt)
-    xslt = DynarexXSLT.new(schema: @schema, xslt_schema: @xslt_schema).to_xslt
-
-    if h[:limit] > 0 then
-      s = "[position() &lt; #{h[:limit]}]"
-      doc = Rexle.new(xslt)
-      e = doc.root.element('xsl:template/channel/*[2]')
-      e.attributes[:select] = e.attributes[:select] + s      
-      return doc.xml pretty: true
-    end
-    
+    xslt = DynarexXSLT.new(schema: @schema, xslt_schema: @xslt_schema).to_xslt    
     return xslt
   end
   
   def to_rss(opt={}, xslt=nil)
-    xslt ||= self.to_xslt(opt)
-    xml = Rexslt.new(xslt, self.to_xml).to_xml
-    "<rss version='2.0'>%s</rss>" % xml
+    
+    unless xslt then
+      h = {limit: 11}.merge(opt)
+      doc = Rexle.new(self.to_xslt)
+      e = doc.element('//xsl:apply-templates[2]')
+      v = e.attributes[:select]
+      e.attributes[:select] = v + "[position() &lt; #{h[:limit]}]"
+      doc2 = Rexle.new "<xsl:sort order='descending' data-type='number' select='@id'/>"
+      e.add doc2.root      
+      xslt = doc.xml      
+    end
+    
+    xml = Rexslt.new(xslt, self.to_xml).to_s
+    Rexle.new("<rss version='2.0'>%s</rss>" % xml).xml(pretty: true)
   end
   
   def xpath(x)

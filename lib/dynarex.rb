@@ -283,13 +283,22 @@ EOF
   def to_rss(opt={}, xslt=nil)
     
     unless xslt then
+      
       h = {limit: 11}.merge(opt)
       doc = Rexle.new(self.to_xslt)
       e = doc.element('//xsl:apply-templates[2]')
-      v = e.attributes[:select]
-      e.attributes[:select] = v + "[position() &lt; #{h[:limit]}]"
       doc2 = Rexle.new "<xsl:sort order='descending' data-type='number' select='@id'/>"
-      e.add doc2.root      
+      e.add doc2.root
+      
+      e2 = doc.root.element('xsl:template[3]')
+      item = e2.element('item')
+      new_item = item.deep_clone
+      item.delete
+      
+      xslif = Rexle.new("<xsl:if test='position() &lt; #{h[:limit]}'/>").root
+      e2.add xslif.root
+      xslif.add new_item      
+
       xslt = doc.xml      
     end
     
