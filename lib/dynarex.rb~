@@ -291,7 +291,7 @@ EOF
   
   def to_rss(opt={}, xslt=nil)
     xslt ||= self.to_xslt(opt)
-    xml = Rexslt.new(, self.to_xml).to_xml
+    xml = Rexslt.new(xslt, self.to_xml).to_xml
     "<rss version='2.0'>%s</rss>" % xml
   end
   
