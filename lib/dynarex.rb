@@ -297,12 +297,22 @@ EOF
       
       xslif = Rexle.new("<xsl:if test='position() &lt; #{h[:limit]}'/>").root
       e2.add xslif.root
+      
+      pubdate = Rexle.new("<pubDate><xsl:value-of select='pubDate'></xsl:value-of></pubDate>").root
+      new_item.add pubdate      
       xslif.add new_item      
 
       xslt = doc.xml      
     end
     
-    xml = Rexslt.new(xslt, self.to_xml).to_s
+    doc = self.to_doc
+    doc.root.xpath('records/*').each do |x|
+      raw_dt = DateTime.parse x.attributes[:created]
+      dt = raw_dt.strftime("%a, %d %b %Y %H:%M:%S %z")
+      x.add Rexle::Element.new('pubDate').add_text dt 
+    end
+
+    xml = Rexslt.new(xslt, doc.xml).to_s
     Rexle.new("<rss version='2.0'>%s</rss>" % xml).xml(pretty: true)
   end
   
