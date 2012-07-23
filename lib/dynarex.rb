@@ -387,9 +387,9 @@ EOF
 
     if raw_header then
       header = raw_header[/<?dynarex (.*)?>/,1]
-      header.scan(/\w+\="[^"]+\"/).map\
-          {|x| r = x.split(/=/,2); [(r[0] + "=").to_sym, \
-              r[1][/^"(.*)"$/,1]] }.each \
+      header.scan(/\w+\s*=\s*["'][^"']+["']/).map\
+          {|x| r = x.split(/=/,2); [(r[0].rstrip + "=").to_sym, \
+              r[1][/^\s*"(.*)"$/,1]] }.each \
                 {|name, value|      self.method(name).call(value)}
     end
 
