@@ -11,6 +11,8 @@ require 'rexslt'
 require 'dynarex-xslt'
 require 'recordx'
 require 'rxraw-lineparser'
+require 'yaml'
+require 'logger'
 
 class Dynarex
 
@@ -26,9 +28,11 @@ class Dynarex
 #    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
 
   def initialize(location=nil)
+
     @delimiter = ' '   
     open(location) if location
     @dirty_flag = false
+    @logger = Logger.new('/tmp/dynarex.log','daily')
   end
 
   def add(x)
@@ -252,7 +256,7 @@ EOF
               item[:body].each do |name,value| 
                 #name = name.to_s.prepend('._').to_sym if reserved_keywords.include? name
                 name = ('._' + name.to_s).to_sym if reserved_keywords.include? name
-                xml.send name, value
+                xml.send name, value.to_s
               end
             end
           end
@@ -262,7 +266,7 @@ EOF
         xml.records
       end # end of if @records
     end
-    #puts 'a : ' + a.inspect
+
     @doc = Rexle.new a
   end
   
@@ -276,7 +280,9 @@ EOF
 
   def to_xslt(opt={})    
     h = {limit: -1}.merge(opt)
+    @logger.debug "@schema: %s; @xslt_schema: %s" % [@schema, @xslt_schema]
     xslt = DynarexXSLT.new(schema: @schema, xslt_schema: @xslt_schema).to_xslt    
+    @logger.debug 'xslt : '  + xslt.inspect
     return xslt
   end
   
@@ -309,7 +315,7 @@ EOF
     doc.root.xpath('records/*').each do |x|
       raw_dt = DateTime.parse x.attributes[:created]
       dt = raw_dt.strftime("%a, %d %b %Y %H:%M:%S %z")
-      x.add Rexle::Element.new('pubDate').add_text dt 
+      x.add Rexle::Element.new('pubDate').add_text dt.to_s 
     end
 
     xml = Rexslt.new(xslt, doc.xml).to_s
@@ -414,15 +420,37 @@ EOF
     @summary[:schema] = @schema
     @summary[:format_mask] = @format_mask
 
-    lines = raw_lines.map do |x|
-      field_names, field_values = RXRawLineParser.new(@format_mask).parse(x)
-      field_values
+    if raw_lines.first == '---' then
+
+      yaml = YAML.load raw_lines.join("\n")
+
+      yamlize = lambda {|x| (x.is_a? Array) ? '--- ' + x.to_s : x}
+      
+      yprocs = {
+        Hash: lambda {|y|
+          y.map do |k,v| 
+            procs = {Hash: proc {|x| x.values}, Array: proc {v}}
+            values = procs[v.class.to_s.to_sym].call(v).map(&yamlize)
+            [k, *values]
+          end
+        },
+        Array: lambda {|y| y.map {|x2| x2.map(&yamlize)} }
+      }
+
+      lines = yprocs[yaml.class.to_s.to_sym].call yaml      
+    else
+        
+      lines = raw_lines.map do |x|
+        field_names, field_values = RXRawLineParser.new(@format_mask).parse(x)
+        field_values
+      end
+      
     end
     
     a = lines.map do|x| 
       created = Time.now.to_s
       
-      h = Hash[@fields.zip(x)]
+      h = Hash[@fields.zip(x.map{|t| t.to_s[/^--- /] ? YAML.load(t) : t})]
       [h[@default_key], {id: '', created: created, last_modified: '', body: h}]
     end
 
@@ -532,6 +560,7 @@ EOF
   end  
 
   def load_records
+
     @records = records_to_h
     @records.instance_eval do
        def delete_item(i)
@@ -556,7 +585,7 @@ EOF
 
       created = Time.now.to_s
       last_modified = ''
-      
+
       if row.attributes[:id] then
         id = row.attributes[:id]
       else
@@ -566,7 +595,8 @@ EOF
       created = row.attributes[:created] if row.attributes[:created]
       last_modified = row.attributes[:last_modified] if row.attributes[:last_modified]
       body = row.xpath('*').inject({}) do |r,node|
-        r.merge node.name.to_sym => node.text.unescape
+        text = node.text.unescape
+        r.merge node.name.to_sym => (text[/^--- /] ? YAML.load(text) : text)
       end
 
       result.merge body[@default_key.to_sym] => {id: id, created: created, last_modified: last_modified, body: body}
