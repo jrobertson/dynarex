@@ -12,7 +12,6 @@ require 'dynarex-xslt'
 require 'recordx'
 require 'rxraw-lineparser'
 require 'yaml'
-require 'logger'
 
 class Dynarex
 
@@ -32,7 +31,7 @@ class Dynarex
     @delimiter = ' '   
     open(location) if location
     @dirty_flag = false
-    @logger = Logger.new('/tmp/dynarex.log','daily')
+
   end
 
   def add(x)
@@ -280,9 +279,7 @@ EOF
 
   def to_xslt(opt={})    
     h = {limit: -1}.merge(opt)
-    @logger.debug "@schema: %s; @xslt_schema: %s" % [@schema, @xslt_schema]
     xslt = DynarexXSLT.new(schema: @schema, xslt_schema: @xslt_schema).to_xslt    
-    @logger.debug 'xslt : '  + xslt.inspect
     return xslt
   end
   
