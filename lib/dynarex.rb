@@ -31,7 +31,6 @@ class Dynarex
     @delimiter = ' '   
     open(location) if location
     @dirty_flag = false
-
   end
 
   def add(x)
@@ -255,7 +254,7 @@ EOF
               item[:body].each do |name,value| 
                 #name = name.to_s.prepend('._').to_sym if reserved_keywords.include? name
                 name = ('._' + name.to_s).to_sym if reserved_keywords.include? name
-                xml.send name, value.to_s
+                xml.send(name, value.send(value.is_a?(String) ? :to_s : :to_yaml))
               end
             end
           end
@@ -407,6 +406,7 @@ EOF
       a_summary = raw_summary.split(',').map(&:strip)
       
       @summary = {}
+
       while raw_lines.first[/#{a_summary.join('|')}:\s+\w+/] do      
         label, val = raw_lines.shift.match(/(\w+):\s+([^$]+)$/).captures
         @summary[label] = val
@@ -421,7 +421,7 @@ EOF
 
       yaml = YAML.load raw_lines.join("\n")
 
-      yamlize = lambda {|x| (x.is_a? Array) ? '--- ' + x.to_s : x}
+      yamlize = lambda {|x| (x.is_a? Array) ? x.to_yaml : x}
       
       yprocs = {
         Hash: lambda {|y|
@@ -435,6 +435,7 @@ EOF
       }
 
       lines = yprocs[yaml.class.to_s.to_sym].call yaml      
+
     else
         
       lines = raw_lines.map do |x|
@@ -446,8 +447,7 @@ EOF
     
     a = lines.map do|x| 
       created = Time.now.to_s
-      
-      h = Hash[@fields.zip(x.map{|t| t.to_s[/^--- /] ? YAML.load(t) : t})]
+      h = Hash[@fields.zip(x.map{|t| t.to_s[/^---/] ? YAML.load(t) : t})]
       [h[@default_key], {id: '', created: created, last_modified: '', body: h}]
     end
 

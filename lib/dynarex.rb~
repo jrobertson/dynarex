@@ -593,7 +593,7 @@ EOF
       last_modified = row.attributes[:last_modified] if row.attributes[:last_modified]
       body = row.xpath('*').inject({}) do |r,node|
         text = node.text.unescape
-        r.merge node.name.to_sym => (text[/^--- /] ? YAML.load(text) : text)
+        r.merge node.name.to_sym => (text[/^--- |^\[/] ? YAML.load(text) : text)
       end
 
       result.merge body[@default_key.to_sym] => {id: id, created: created, last_modified: last_modified, body: body}
