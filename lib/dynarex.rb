@@ -15,7 +15,7 @@ require 'yaml'
 
 class Dynarex
 
-  attr_accessor :format_mask, :delimiter, :xslt_schema, :schema
+  attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :order
   
   
 #Create a new dynarex document from 1 of the following options:
@@ -365,7 +365,18 @@ EOF
     
     attributes = {id: id, created: Time.now.to_s, last_modified: nil}
     attributes.each {|k,v| record.add_attribute(k, v)}
-    @doc.root.element('records').add record            
+    if @order == 'descending' then
+
+      element = @doc.root.element('records/.[1]')
+      if element then
+        element.insert_before record
+      else
+        @doc.root.element('records').add record
+      end       
+      
+    else
+      @doc.root.element('records').add record            
+    end
 
   end
 
@@ -376,6 +387,7 @@ EOF
   end
   
   def display_xml(opt={})
+
     load_records if @dirty_flag == true
     rebuild_doc()
     @doc.xml(opt) #jr230711 pretty: true
@@ -401,6 +413,7 @@ EOF
     raw_summary = schema[/\[([^\]]+)/,1]
     raw_lines = buffer.gsub(/^\s*#[^\n]+/,'').gsub(/\n\n/,"\n")\
         .strip.split(/\r?\n|\r(?!\n)/)
+    raw_lines.reverse! if @order == 'descending'
 
     if raw_summary then
       a_summary = raw_summary.split(',').map(&:strip)
@@ -455,6 +468,7 @@ EOF
     
     #replace the existing records hash
     h = @records
+    i = 0
     h2.each do |key,item|
       if h.has_key? key then
 
@@ -463,9 +477,9 @@ EOF
         item[:body].each do |k,v|
           h[key][:body][k.to_sym] = v
         end
-      else
+      else        
+        item[:id] = (@order == 'descending' ? (h2.count) - i : i+ 1).to_s
         i += 1
-        item[:id] =  i.to_s
         h[key] = item.clone
       end      
     end    
@@ -577,7 +591,7 @@ EOF
   def records_to_h()
 
     i = @doc.root.xpath('max(records/*/attribute::id)') || 0
-    
+
     @doc.root.xpath('records/*').inject({}) do |result,row|
 
       created = Time.now.to_s
