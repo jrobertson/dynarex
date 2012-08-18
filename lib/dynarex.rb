@@ -66,6 +66,17 @@ class Dynarex
     "<object #%s>" % [self.object_id]
   end
   
+  def order=(value)
+    
+    self.summary.merge!({order: value})    
+    if @order == 'ascending' and value == 'descending' then
+      sort_records
+    elsif @order == 'descending' and value == 'ascending'
+      sort_records
+    end    
+    @order = value
+  end
+  
   def schema=(s)
     open s
   end
@@ -543,7 +554,8 @@ EOF
     @doc = Rexle.new(buffer) unless @doc
     @schema = @doc.root.text('summary/schema')
     @root_name = @doc.root.name
-    @summary = summary_to_h    
+    @summary = summary_to_h
+    @order = @summary[:order] if @summary.has_key? :order
 
     @default_key = @doc.root.element('summary/default_key/text()') 
     @format_mask = @doc.root.element('summary/format_mask/text()')
@@ -615,6 +627,38 @@ EOF
 
   end
 
+  def sort_records
+xsl =<<XSL
+<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+
+<xsl:template match="*">
+<xsl:element name="{name()}"><xsl:text>
+  </xsl:text>
+  <xsl:copy-of select="summary"/><xsl:text>
+  </xsl:text>
+  <xsl:apply-templates select="records"/>
+</xsl:element>
+</xsl:template>
+<xsl:template match="records">
+<records><xsl:text>
+  </xsl:text>
+<xsl:for-each select="child::*">
+  <xsl:sort order="descending"/>
+  <xsl:text>  </xsl:text><xsl:copy-of select="."/><xsl:text>
+  </xsl:text>
+</xsl:for-each>
+</records><xsl:text>
+</xsl:text>
+</xsl:template>
+
+</xsl:stylesheet>
+XSL
+
+    @doc = Rexle.new(Rexslt.new(xsl, self.to_xml).to_s)
+    @dirty_flag = true
+  end
+  
   def summary_to_h
 
     @doc.root.xpath('summary/*').inject({}) do |r,node|
