@@ -12,6 +12,7 @@ require 'dynarex-xslt'
 require 'recordx'
 require 'rxraw-lineparser'
 require 'yaml'
+require 'rowx'
 
 class Dynarex
 
@@ -336,7 +337,8 @@ EOF
   private
 
 
-  def create_find(fields)  
+  def create_find(fields)
+
     methods = fields.map do |field|
       "def find_by_#{field}(value) findx_by('#{field}', value) end\n" + \
         "def find_all_by_#{field}(value) findx_all_by('#{field}', value) end"
@@ -373,7 +375,7 @@ EOF
     end
     
     id = (@doc.root.xpath('max(records/*/attribute::id)') || '0').succ unless id
-    
+
     attributes = {id: id, created: Time.now.to_s, last_modified: nil}
     attributes.each {|k,v| record.add_attribute(k, v)}
     if @order == 'descending' then
@@ -441,28 +443,36 @@ EOF
     @summary[:schema] = @schema
     @summary[:format_mask] = @format_mask
 
-    if raw_lines.first == '---' then
-
-      yaml = YAML.load raw_lines.join("\n")
-
-      yamlize = lambda {|x| (x.is_a? Array) ? x.to_yaml : x}
+    lines = case raw_lines.first
       
-      yprocs = {
-        Hash: lambda {|y|
-          y.map do |k,v| 
-            procs = {Hash: proc {|x| x.values}, Array: proc {v}}
-            values = procs[v.class.to_s.to_sym].call(v).map(&yamlize)
-            [k, *values]
-          end
-        },
-        Array: lambda {|y| y.map {|x2| x2.map(&yamlize)} }
-      }
+      when '---'
 
-      lines = yprocs[yaml.class.to_s.to_sym].call yaml      
+        yaml = YAML.load raw_lines.join("\n")
+
+        yamlize = lambda {|x| (x.is_a? Array) ? x.to_yaml : x}
+        
+        yprocs = {
+          Hash: lambda {|y|
+            y.map do |k,v| 
+              procs = {Hash: proc {|x| x.values}, Array: proc {v}}
+              values = procs[v.class.to_s.to_sym].call(v).map(&yamlize)
+              [k, *values]
+            end
+          },
+          Array: lambda {|y| y.map {|x2| x2.map(&yamlize)} }
+        }
+
+        yprocs[yaml.class.to_s.to_sym].call yaml      
+        
+      when '--+'
+        
+        raw_lines.shift
+        xml = RowX.new(raw_lines.join("\n")).to_xml
+        Rexle.new(xml).root.xpath('item').map{|x| x.xpath('*/text()')}
 
     else
         
-      lines = raw_lines.map do |x|
+      raw_lines.map do |x|
         field_names, field_values = RXRawLineParser.new(@format_mask).parse(x)
         field_values
       end
@@ -555,6 +565,7 @@ EOF
     @schema = @doc.root.text('summary/schema')
     @root_name = @doc.root.name
     @summary = summary_to_h
+
     @order = @summary[:order] if @summary.has_key? :order
 
     @default_key = @doc.root.element('summary/default_key/text()') 
@@ -572,7 +583,10 @@ EOF
       # load the record query handler methods
       attach_record_methods
     else
-      @default_key = @doc.root.xpath('records/*/*').first.name
+
+      #jr080912 @default_key = @doc.root.xpath('records/*/*').first.name
+
+      @default_key = @doc.root.element('records/./.[1]').name
     end
 
     if @doc.root.xpath('records/*').length > 0 then
