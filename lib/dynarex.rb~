@@ -12,6 +12,7 @@ require 'dynarex-xslt'
 require 'recordx'
 require 'rxraw-lineparser'
 require 'yaml'
+require 'rowx'
 
 class Dynarex
 

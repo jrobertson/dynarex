@@ -28,7 +28,7 @@ class Dynarex
 #    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
 
   def initialize(location=nil)
-
+    #puts Rexle.version
     @delimiter = ' '   
     open(location) if location
     @dirty_flag = false
@@ -472,8 +472,13 @@ EOF
 
     else
         
-      raw_lines.map do |x|
-        field_names, field_values = RXRawLineParser.new(@format_mask).parse(x)
+      raw_lines.map.with_index do |x,i|
+
+        begin
+          field_names, field_values = RXRawLineParser.new(@format_mask).parse(x)
+        rescue
+          raise "input file parser error at line " + (i + 1).to_s + ' --> ' + x
+        end
         field_values
       end
       
