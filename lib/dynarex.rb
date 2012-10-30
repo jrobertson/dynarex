@@ -376,7 +376,7 @@ EOF
     
     id = (@doc.root.xpath('max(records/*/attribute::id)') || '0').succ unless id
 
-    attributes = {id: id, created: Time.now.to_s, last_modified: nil}
+    attributes = {id: id.to_s, created: Time.now.to_s, last_modified: nil}
     attributes.each {|k,v| record.add_attribute(k, v)}
     if @order == 'descending' then
 
