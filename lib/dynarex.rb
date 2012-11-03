@@ -434,7 +434,8 @@ EOF
       
       @summary = {}
 
-      while raw_lines.first[/#{a_summary.join('|')}:\s+\w+/] do      
+      while not raw_lines.empty? and \
+          raw_lines.first[/#{a_summary.join('|')}:\s+[\w\*\-\+]+/] do
         label, val = raw_lines.shift.match(/(\w+):\s+([^$]+)$/).captures
         @summary[label] = val
       end
