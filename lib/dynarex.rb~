@@ -266,7 +266,8 @@ EOF
               item[:body].each do |name,value| 
                 #name = name.to_s.prepend('._').to_sym if reserved_keywords.include? name
                 name = ('._' + name.to_s).to_sym if reserved_keywords.include? name
-                xml.send(name, value.send(value.is_a?(String) ? :to_s : :to_yaml))
+                val = value.send(value.is_a?(String) ? :to_s : :to_yaml)                
+                xml.send(name, val.gsub('>','&gt;').gsub('<','&lt;'))
               end
             end
           end
@@ -537,7 +538,7 @@ EOF
 
     end
 
-    format_mask = fields ? fields.map {|x| "[!%s]" % x}.join(' ') : ''
+    format_mask = fields ? fields.map {|x| "[!%s]" % x}.join('  ') : ''
 
     @summary = Hash[summary.zip([''] * summary.length).flatten.each_slice(2)\
                     .map{|x1,x2| [x1.to_sym,x2]}]

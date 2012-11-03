@@ -41,7 +41,7 @@ class Dynarex
   end
 
   def delimiter=(separator)
-    @format_mask = @format_mask.to_s.gsub(/\s/, separator)
+    @format_mask = @format_mask.to_s.gsub(/\s{2}/, separator)
     @summary[:format_mask] = @format_mask
   end
 
@@ -538,7 +538,7 @@ EOF
 
     end
 
-    format_mask = fields ? fields.map {|x| "[!%s]" % x}.join(' ') : ''
+    format_mask = fields ? fields.map {|x| "[!%s]" % x}.join('  ') : ''
 
     @summary = Hash[summary.zip([''] * summary.length).flatten.each_slice(2)\
                     .map{|x1,x2| [x1.to_sym,x2]}]
