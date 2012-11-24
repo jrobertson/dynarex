@@ -639,10 +639,13 @@ EOF
 
       created = row.attributes[:created] if row.attributes[:created]
       last_modified = row.attributes[:last_modified] if row.attributes[:last_modified]
-      body = row.xpath('*').inject({}) do |r,node|
+
+      fields = @doc.root.text('summary/schema')[/\(.*\)/].scan(/\w+/)
+      body = fields.inject({}) do |r,field|
+        node = row.element field
         text = node.text.unescape
         r.merge node.name.to_sym => (text[/^--- |^\[/] ? YAML.load(text) : text)
-      end
+      end      
 
       result.merge body[@default_key.to_sym] => {id: id, created: created, last_modified: last_modified, body: body}
     end
