@@ -627,7 +627,8 @@ EOF
   def records_to_h()
 
     i = @doc.root.xpath('max(records/*/attribute::id)') || 0
-
+    fields = @doc.root.text('summary/schema')[/\(.*\)/].scan(/\w+/)
+    
     @doc.root.xpath('records/*').inject({}) do |result,row|
 
       created = Time.now.to_s
@@ -642,11 +643,16 @@ EOF
       created = row.attributes[:created] if row.attributes[:created]
       last_modified = row.attributes[:last_modified] if row.attributes[:last_modified]
 
-      fields = @doc.root.text('summary/schema')[/\(.*\)/].scan(/\w+/)
       body = fields.inject({}) do |r,field|
+        
         node = row.element field
-        text = node.text.unescape
-        r.merge node.name.to_sym => (text[/^--- |^\[/] ? YAML.load(text) : text)
+        
+        if node then
+          text = node.text.unescape
+          r.merge node.name.to_sym => (text[/^--- |^\[/] ? YAML.load(text) : text)
+        else
+          r
+        end
       end      
 
       result.merge body[@default_key.to_sym] => {id: id, created: created, last_modified: last_modified, body: body}

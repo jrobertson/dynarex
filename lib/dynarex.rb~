@@ -148,7 +148,9 @@ EOF
   
 #Save the document to a local file.  
   
-  def save(filepath=nil, opt={})
+  def save(*args)
+    # args = [filepath=nil, opt={}]
+    opt, filepath = args.reverse
     filepath ||= @local_filepath
     @local_filepath = filepath
     xml = display_xml(opt)
