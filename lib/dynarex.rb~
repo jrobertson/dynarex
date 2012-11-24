@@ -18,6 +18,7 @@ class Dynarex
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :order
   
+  def self.gem_url() 'http://www.jamesrobertson.eu/ruby/dynarex#1.2,3'  end
   
 #Create a new dynarex document from 1 of the following options:
 #* a local file path
@@ -41,7 +42,7 @@ class Dynarex
   end
 
   def delimiter=(separator)
-    @format_mask = @format_mask.to_s.gsub(/\s{2}/, separator)
+    @format_mask = @format_mask.to_s.gsub(/\s/, separator)
     @summary[:format_mask] = @format_mask
   end
 
@@ -168,11 +169,12 @@ EOF
 
   def create(arg, id=nil)
     
-    #jr190512 rebuild_doc()
+    #jr291012 rebuild_doc()
+    #jr291012 (load_records; rebuild_doc) if @dirty_flag == true
     methods = {Hash: :hash_create, String: :create_from_line}
     send (methods[arg.class.to_s.to_sym]), arg, id
 
-    #jr190512 load_records
+    #jr291012load_records
     @dirty_flag = true
     self
   end
@@ -370,8 +372,7 @@ EOF
 
     fields.each do |k,v|
       element = Rexle::Element.new(k.to_s)              
-      element.root.text = v.to_s if v
-
+      element.root.text = v.to_s.gsub('<','&lt;').gsub('>','&gt;') if v
       record.add element if record
     end
     
@@ -539,7 +540,7 @@ EOF
 
     end
 
-    format_mask = fields ? fields.map {|x| "[!%s]" % x}.join('  ') : ''
+    format_mask = fields ? fields.map {|x| "[!%s]" % x}.join(' ') : ''
 
     @summary = Hash[summary.zip([''] * summary.length).flatten.each_slice(2)\
                     .map{|x1,x2| [x1.to_sym,x2]}]
