@@ -18,7 +18,7 @@ class Dynarex
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :order
   
-  def self.gem_url() 'http://www.jamesrobertson.eu/ruby/dynarex#1.2.11'  end
+  def self.gem_url() 'http://www.jamesrobertson.eu/ruby/dynarex#1.2,12'  end
   
 #Create a new dynarex document from 1 of the following options:
 #* a local file path
@@ -427,12 +427,25 @@ EOF
     i = @doc.root.xpath('max(records/*/attribute::id)').to_i
     
     raw_summary = schema[/\[([^\]]+)/,1]
-    r = buffer[/--\+(.*)/m,1]
-    buffer = r if r
-    raw_lines = buffer[/(--\+)?(.*)/m,2].gsub(/^\s*#[^\n]+/,'').gsub(/\n\n/,"\n")\
-        .strip.split(/\r?\n|\r(?!\n)/)
+    rowx = buffer[/--\+.*/m]
 
-    raw_lines.reverse! if @order == 'descending'
+    buffer = rowx if rowx
+    
+    raw_lines = buffer.gsub(/^\s*#[^\n]+/,'').gsub(/\n\n/,"\n")\
+        .strip.split(/\r?\n|\r(?!\n)/)
+    
+    if @order == 'descending' then
+      rl = raw_lines
+      
+      if rowx then
+        raw_lines = [rl[0]] + rl[1..-1].each_slice(@fields.count).inject([])\
+            {|r,x| r += x.reverse }.reverse
+      else
+        raw_lines = rl.each_slice(@fields.count).inject([])\
+            {|r,x| r += x.reverse }.reverse
+      end
+      
+    end
 
     if raw_summary then
       a_summary = raw_summary.split(',').map(&:strip)
@@ -490,7 +503,7 @@ EOF
       end
       
     end
-    
+
     a = lines.map do|x| 
       created = Time.now.to_s
       h = Hash[@fields.zip(x.map{|t| t.to_s[/^---/] ? YAML.load(t) : t})]
