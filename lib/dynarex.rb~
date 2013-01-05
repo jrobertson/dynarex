@@ -383,7 +383,6 @@ EOF
     attributes = {id: id.to_s, created: Time.now.to_s, last_modified: nil}
     attributes.each {|k,v| record.add_attribute(k, v)}
     if @order == 'descending' then
-
       element = @doc.root.element('records/.[1]')
       if element then
         element.insert_before record
@@ -428,8 +427,11 @@ EOF
     i = @doc.root.xpath('max(records/*/attribute::id)').to_i
     
     raw_summary = schema[/\[([^\]]+)/,1]
-    raw_lines = buffer.gsub(/^\s*#[^\n]+/,'').gsub(/\n\n/,"\n")\
+    r = buffer[/--\+(.*)/m,1]
+    buffer = r if r
+    raw_lines = buffer[/(--\+)?(.*)/m,2].gsub(/^\s*#[^\n]+/,'').gsub(/\n\n/,"\n")\
         .strip.split(/\r?\n|\r(?!\n)/)
+
     raw_lines.reverse! if @order == 'descending'
 
     if raw_summary then
@@ -627,7 +629,8 @@ EOF
   def records_to_h()
 
     i = @doc.root.xpath('max(records/*/attribute::id)') || 0
-
+    fields = @doc.root.text('summary/schema')[/\(.*\)/].scan(/\w+/)
+    
     @doc.root.xpath('records/*').inject({}) do |result,row|
 
       created = Time.now.to_s
@@ -642,11 +645,16 @@ EOF
       created = row.attributes[:created] if row.attributes[:created]
       last_modified = row.attributes[:last_modified] if row.attributes[:last_modified]
 
-      fields = @doc.root.text('summary/schema')[/\(.*\)/].scan(/\w+/)
       body = fields.inject({}) do |r,field|
+        
         node = row.element field
-        text = node.text.unescape
-        r.merge node.name.to_sym => (text[/^--- |^\[/] ? YAML.load(text) : text)
+        
+        if node then
+          text = node.text.unescape
+          r.merge node.name.to_sym => (text[/^--- |^\[/] ? YAML.load(text) : text)
+        else
+          r
+        end
       end      
 
       result.merge body[@default_key.to_sym] => {id: id, created: created, last_modified: last_modified, body: body}

@@ -18,7 +18,7 @@ class Dynarex
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :order
   
-  def self.gem_url() 'http://www.jamesrobertson.eu/ruby/dynarex#1.2,3'  end
+  def self.gem_url() 'http://www.jamesrobertson.eu/ruby/dynarex#1.2.11'  end
   
 #Create a new dynarex document from 1 of the following options:
 #* a local file path
@@ -383,7 +383,6 @@ EOF
     attributes = {id: id.to_s, created: Time.now.to_s, last_modified: nil}
     attributes.each {|k,v| record.add_attribute(k, v)}
     if @order == 'descending' then
-
       element = @doc.root.element('records/.[1]')
       if element then
         element.insert_before record
@@ -428,8 +427,11 @@ EOF
     i = @doc.root.xpath('max(records/*/attribute::id)').to_i
     
     raw_summary = schema[/\[([^\]]+)/,1]
-    raw_lines = buffer.gsub(/^\s*#[^\n]+/,'').gsub(/\n\n/,"\n")\
+    r = buffer[/--\+(.*)/m,1]
+    buffer = r if r
+    raw_lines = buffer[/(--\+)?(.*)/m,2].gsub(/^\s*#[^\n]+/,'').gsub(/\n\n/,"\n")\
         .strip.split(/\r?\n|\r(?!\n)/)
+
     raw_lines.reverse! if @order == 'descending'
 
     if raw_summary then
