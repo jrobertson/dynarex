@@ -16,9 +16,9 @@ require 'rowx'
 
 class Dynarex
 
-  attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :order
+  attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :order, :type
   
-  def self.gem_url() 'http://www.jamesrobertson.eu/ruby/dynarex#1.2.13'  end
+  def self.gem_url() 'http://www.jamesrobertson.eu/ruby/dynarex#1.2.14'  end
   
 #Create a new dynarex document from 1 of the following options:
 #* a local file path
@@ -81,6 +81,11 @@ class Dynarex
   
   def schema=(s)
     open s
+  end
+  
+  def type=(v)
+    @order = 'descending' if v = 'feed'
+    @type = v
   end
 
 # Returns the hash representation of the document summary.

@@ -18,7 +18,7 @@ class Dynarex
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :order, :type
   
-  def self.gem_url() 'http://www.jamesrobertson.eu/ruby/dynarex#1.2.14'  end
+  def self.gem_url() 'http://www.jamesrobertson.eu/ruby/dynarex#1.2.15'  end
   
 #Create a new dynarex document from 1 of the following options:
 #* a local file path
@@ -84,8 +84,9 @@ class Dynarex
   end
   
   def type=(v)
-    @order = 'descending' if v = 'feed'
+    @order = 'descending' if v == 'feed'
     @type = v
+    @summary[:type] = v
   end
 
 # Returns the hash representation of the document summary.
@@ -425,7 +426,7 @@ EOF
       header.scan(/\w+\s*=\s*(?:"[^"]+"|'[^']+')/).map\
           {|x| r = x.split(/=/,2); [(r[0].rstrip + "=").to_sym, \
               r[1][/^\s*"(.*)"$/,1]] }.each \
-                {|name, value|      self.method(name).call(value)}
+                {|name, value|  self.method(name).call(value)}
     end
 
     # if records already exist find the max id
@@ -444,11 +445,25 @@ EOF
       
       @summary = {}
 
+      # fetch any summary lines
       while not raw_lines.empty? and \
           raw_lines.first[/#{a_summary.join('|')}:\s+[\w\*\-\+]+/] do
         label, val = raw_lines.shift.match(/(\w+):\s+([^$]+)$/).captures
         @summary[label] = val
       end
+    end
+        
+    if @type == 'checklist' then
+      
+      # extract the brackets from the line
+
+      checked = []
+      raw_lines.map! do |x| 
+        raw_checked, raw_line = x.partition(/\]/).values_at 0,2
+        checked << (raw_checked[/x/] ? true : false)
+        raw_line
+      end
+
     end
     
     if @order == 'descending' then
@@ -461,6 +476,7 @@ EOF
         raw_lines = rl.each_slice(@fields.count).inject([])\
             {|r,x| r += x.reverse }.reverse
       end
+      checked.reverse! if @type == 'checklist'
       
     end    
 
@@ -498,7 +514,7 @@ EOF
     else
         
       raw_lines.map.with_index do |x,i|
-
+                
         begin
           field_names, field_values = RXRawLineParser.new(@format_mask).parse(x)
         rescue
@@ -509,9 +525,10 @@ EOF
       
     end
 
-    a = lines.map do|x| 
+    a = lines.map.with_index do |x,i| 
       created = Time.now.to_s
       h = Hash[@fields.zip(x.map{|t| t.to_s[/^---/] ? YAML.load(t) : t})]
+      h[@fields.last] = checked[i].to_s if @type == 'checklist'
       [h[@default_key], {id: '', created: created, last_modified: '', body: h}]
     end
 
