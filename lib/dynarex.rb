@@ -18,7 +18,7 @@ class Dynarex
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :order, :type
   
-  def self.gem_url() 'http://www.jamesrobertson.eu/ruby/dynarex#1.2.15'  end
+  def self.gem_url() 'http://www.jamesrobertson.eu/ruby/dynarex#1.2.17'  end
   
 #Create a new dynarex document from 1 of the following options:
 #* a local file path
@@ -508,7 +508,18 @@ EOF
       when '--+'
         
         raw_lines.shift
-        xml = RowX.new(raw_lines.join("\n")).to_xml
+        
+        key = raw_lines.first[/^[^:]+/]
+        populated_lines = raw_lines.inject([]) do |r,x| 
+          x[/^#{key}:/] ? r << [x] : r.last << x;  r
+        end
+
+        @fields.each do |field|
+          populated_lines.each do |line|
+            line << field.to_s + ':' if line.grep(/^#{field.to_s}:/).empty?            
+          end
+        end        
+        xml = RowX.new(populated_lines.join("\n")).to_xml
         Rexle.new(xml).root.xpath('item').map{|x| x.xpath('*/text()')}
 
     else
