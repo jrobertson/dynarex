@@ -612,7 +612,7 @@ EOF
     elsif s[/[\[\(]/] # schema
       dynarex_new(s)
     elsif s[/^https?:\/\//] then  # url
-      buffer = Kernel.open(s, 'UserAgent' => 'Dynarex-Reader').{|x| x.read}
+      buffer = Kernel.open(s, 'UserAgent' => 'Dynarex-Reader'){|x| x.read}
     else # local file
       @local_filepath = s
       buffer = File.open(s,'r').read
