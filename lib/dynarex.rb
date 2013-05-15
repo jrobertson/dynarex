@@ -17,8 +17,7 @@ require 'rowx'
 class Dynarex
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :order, :type
-  
-  def self.gem_url() 'http://www.jamesrobertson.eu/ruby/dynarex#1.2.17'  end
+    
   
 #Create a new dynarex document from 1 of the following options:
 #* a local file path
@@ -613,7 +612,7 @@ EOF
     elsif s[/[\[\(]/] # schema
       dynarex_new(s)
     elsif s[/^https?:\/\//] then  # url
-      buffer = Kernel.open(s, 'UserAgent' => 'Dynarex-Reader').read
+      buffer = Kernel.open(s, 'UserAgent' => 'Dynarex-Reader').{|x| x.read}
     else # local file
       @local_filepath = s
       buffer = File.open(s,'r').read
