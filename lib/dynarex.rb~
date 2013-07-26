@@ -17,7 +17,7 @@ require 'rowx'
 class Dynarex
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :order, :type
-    
+  
   
 #Create a new dynarex document from 1 of the following options:
 #* a local file path
@@ -153,9 +153,9 @@ EOF
   
 #Save the document to a local file.  
   
-  def save(*args)
-    # args = [filepath=nil, opt={}]
-    opt, filepath = args.reverse
+  def save(filepath=nil)
+
+    opt = {pretty: true}
     filepath ||= @local_filepath
     @local_filepath = filepath
     xml = display_xml(opt)
