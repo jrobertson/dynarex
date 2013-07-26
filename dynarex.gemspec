@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'dynarex'
-  s.version = '1.2.22'
+  s.version = '1.2.23'
   s.summary = 'dynarex'
   s.authors = ['James Robertson']
   s.files = Dir['lib/**/*.rb']
@@ -15,4 +15,5 @@ Gem::Specification.new do |s|
   s.add_dependency('rowx') 
   s.signing_key = '../privatekeys/dynarex.pem'
   s.cert_chain  = ['gem-public_cert.pem']
+  s.license = 'MIT'
 end

@@ -31,7 +31,7 @@ class Dynarex
     #puts Rexle.version
     @delimiter = ' '   
     open(location) if location
-    #jr260713@dirty_flag = false
+    @dirty_flag = false
   end
 
   def add(x)
@@ -97,13 +97,22 @@ class Dynarex
 #Return a Hash (which can be edited) containing all records.
   
   def records
-    load_records #jr260713if @dirty_flag == true
-    @records
+    
+    load_records if @dirty_flag == true
+    
+    if block_given? then
+      yield(@records)
+      rebuild_doc
+      @dirty_flag = true 
+    else
+      @records
+    end
+    
   end
   
 #Returns a ready-only snapshot of records as a simple Hash.  
   def flat_records
-    load_records #jr260713if @dirty_flag == true
+    load_records if @dirty_flag == true
     @flat_records
   end
   
@@ -182,7 +191,7 @@ EOF
     send (methods[arg.class.to_s.to_sym]), arg, id
 
     #jr291012load_records
-    #jr260713@dirty_flag = true
+    @dirty_flag = true
     self
   end
 
@@ -212,7 +221,7 @@ EOF
     fields.each {|k,v| record.element(k.to_s).text = v if v}
     record.add_attribute(last_modified: Time.now.to_s)
 
-    #jr260713@dirty_flag = true
+    @dirty_flag = true
 
     self
 
@@ -229,7 +238,7 @@ EOF
     else
       @doc.delete x
     end
-    #jr260713@dirty_flag = true
+    @dirty_flag = true
     self
   end
 
@@ -357,7 +366,7 @@ EOF
   end
 
   def findx_by(field, value)
-    (load_records; rebuild_doc) #jr260713if @dirty_flag == true
+    (load_records; rebuild_doc) if @dirty_flag == true
     r = @doc.root.element("records/*[#{field}='#{value}']")
     r ? recordx_to_record(r) : nil
   end
@@ -409,7 +418,7 @@ EOF
   
   def display_xml(opt={})
 
-    load_records #jr260713if @dirty_flag == true
+    load_records if @dirty_flag == true
     rebuild_doc()
     @doc.xml(opt) #jr230711 pretty: true
   end
@@ -664,7 +673,7 @@ EOF
       
     #Returns a ready-only snapshot of records as a simple Hash.
     @flat_records = @records.values.map{|x| x[:body]}
-    #jr260713@dirty_flag = false
+    @dirty_flag = false
   end
 
   def display()
@@ -736,7 +745,7 @@ xsl =<<XSL
 XSL
 
     @doc = Rexle.new(Rexslt.new(xsl, self.to_xml).to_s)
-    #jr260713@dirty_flag = true
+    @dirty_flag = true
   end
   
   def summary_to_h
