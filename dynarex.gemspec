@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'dynarex'
-  s.version = '1.2.23'
+  s.version = '1.2.24'
   s.summary = 'dynarex'
   s.authors = ['James Robertson']
   s.files = Dir['lib/**/*.rb']
@@ -16,4 +16,6 @@ Gem::Specification.new do |s|
   s.signing_key = '../privatekeys/dynarex.pem'
   s.cert_chain  = ['gem-public_cert.pem']
   s.license = 'MIT'
+  s.email = 'james@r0bertson.co.uk'
+  s.homepage = 'https://github.com/jrobertson/dynarex'
 end
