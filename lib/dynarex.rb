@@ -431,10 +431,16 @@ EOF
 
     if raw_header then
       header = raw_header[/<?dynarex (.*)?>/,1]
-      header.scan(/\w+\s*=\s*(?:"[^"]+"|'[^']+')/).map\
-          {|x| r = x.split(/=/,2); [(r[0].rstrip + "=").to_sym, \
-              r[1][/^\s*"(.*)"$/,1]] }.each \
-                {|name, value|  self.method(name).call(value)}
+
+      r1 = /([\w\-]+\s*\=\s*'[^']*)'/
+      r2 = /([\w\-]+\s*\=\s*"[^"]*)"/
+
+      r = header.scan(/#{r1}|#{r2}/).map(&:compact).flatten      
+      r.each do |x|
+        attr, val = x.split(/\s*=\s*["']/,2)
+        self.method((attr + '=').to_sym).call(val)
+      end
+
     end
 
     # if records already exist find the max id
