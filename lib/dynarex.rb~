@@ -142,16 +142,19 @@ EOF
 
 
     #format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
-    format_mask = @doc.root.element('summary/format_mask/text()')
-    xslt_format = format_mask.to_s.gsub(/\s(?=\[!\w+\])/,'<xsl:text> </xsl:text>').gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
+    #format_mask = @doc.root.element('summary/format_mask/text()')
+    format_mask = self.format_mask
+    format_mask.gsub!(/\[[^!\]]+\]/) {|x| x[1] }
+    xslt_format = format_mask.gsub(/\s(?=\[!\w+\])/,'<xsl:text> </xsl:text>')
+      .gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
     
     xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
 
-    #jr250711 xslt  = Nokogiri::XSLT(xsl_buffer)
-    #jr250711 out = xslt.transform(Nokogiri::XML(@doc.to_s))
+    xslt  = Nokogiri::XSLT(xsl_buffer)
+    out = xslt.transform(Nokogiri::XML(@doc.to_s))
     #jr250811 puts 'xsl_buffer: ' + xsl_buffer
     #jr250811 puts 'doc_to_s: ' + @doc.to_s
-    #jr260711 out.text
+    out.text
     #jr231211 Rexslt.new(xsl_buffer, @doc.to_s).to_s
 
   end
@@ -431,10 +434,16 @@ EOF
 
     if raw_header then
       header = raw_header[/<?dynarex (.*)?>/,1]
-      header.scan(/\w+\s*=\s*(?:"[^"]+"|'[^']+')/).map\
-          {|x| r = x.split(/=/,2); [(r[0].rstrip + "=").to_sym, \
-              r[1][/^\s*"(.*)"$/,1]] }.each \
-                {|name, value|  self.method(name).call(value)}
+
+      r1 = /([\w\-]+\s*\=\s*'[^']*)'/
+      r2 = /([\w\-]+\s*\=\s*"[^"]*)"/
+
+      r = header.scan(/#{r1}|#{r2}/).map(&:compact).flatten      
+      r.each do |x|
+        attr, val = x.split(/\s*=\s*["']/,2)
+        self.method((attr + '=').to_sym).call(val)
+      end
+
     end
 
     # if records already exist find the max id

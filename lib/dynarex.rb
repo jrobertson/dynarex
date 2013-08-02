@@ -13,6 +13,7 @@ require 'recordx'
 require 'rxraw-lineparser'
 require 'yaml'
 require 'rowx'
+require 'nokogiri'
 
 class Dynarex
 
@@ -142,16 +143,19 @@ EOF
 
 
     #format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
-    format_mask = @doc.root.element('summary/format_mask/text()')
-    xslt_format = format_mask.to_s.gsub(/\s(?=\[!\w+\])/,'<xsl:text> </xsl:text>').gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
+    #format_mask = @doc.root.element('summary/format_mask/text()')
+    format_mask = self.format_mask
+    format_mask.gsub!(/\[[^!\]]+\]/) {|x| x[1] }
+    xslt_format = format_mask.gsub(/\s(?=\[!\w+\])/,'<xsl:text> </xsl:text>')
+      .gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
     
     xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
 
-    #jr250711 xslt  = Nokogiri::XSLT(xsl_buffer)
-    #jr250711 out = xslt.transform(Nokogiri::XML(@doc.to_s))
+    xslt  = Nokogiri::XSLT(xsl_buffer)
+    out = xslt.transform(Nokogiri::XML(@doc.to_s))
     #jr250811 puts 'xsl_buffer: ' + xsl_buffer
     #jr250811 puts 'doc_to_s: ' + @doc.to_s
-    #jr260711 out.text
+    out.text
     #jr231211 Rexslt.new(xsl_buffer, @doc.to_s).to_s
 
   end
