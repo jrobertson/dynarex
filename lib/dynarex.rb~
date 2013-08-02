@@ -13,6 +13,7 @@ require 'recordx'
 require 'rxraw-lineparser'
 require 'yaml'
 require 'rowx'
+require 'nokogiri'
 
 class Dynarex
 
