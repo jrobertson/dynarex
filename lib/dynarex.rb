@@ -145,6 +145,15 @@ EOF
     #format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
     #format_mask = @doc.root.element('summary/format_mask/text()')
 
+    raw_summary_fields = self.summary[:schema][/^\w+\[([^\]]+)\]/,1]
+    sumry = ''
+    
+    if raw_summary_fields then
+      summary_fields = raw_summary_fields.split(',') 
+      sumry = "\n" + summary_fields.map {|x| x + ': ' + \
+                                         self.summary[x]}.join("\n")
+    end
+
     if self.summary[:rawdoc_type] == 'rowx' then
       a = self.fields.map do |field|
   "<xsl:if test=\"%s != ''\">
@@ -158,8 +167,12 @@ EOF
       xslt  = Nokogiri::XSLT(xsl_buffer)
       out = xslt.transform(Nokogiri::XML(@doc.to_s))
       
-      declaration = %Q(<?dynarex schema="%s"?>\n--+) % self.schema
-      declaration + out.text
+      if @raw_header then
+        declaration = @raw_header
+      else        
+        declaration = %Q(<?dynarex schema="%s"?>\n) % self.schema.gsub('"', '\"')
+      end
+      declaration + sumry + "\n--+\n" + out.text
       
     else
       
@@ -172,9 +185,13 @@ EOF
       xslt  = Nokogiri::XSLT(xsl_buffer)
       
       out = xslt.transform(Nokogiri::XML(@doc.to_s))
-      declaration = %Q(<?dynarex schema="%s" format_mask="%s"?>\n) % 
-        [self.schema, self.format_mask]
-      out.text
+      if @raw_header then
+        declaration = @raw_header
+      else              
+        declaration = %Q(<?dynarex schema="%s" format_mask="%s"?>\n) % 
+          [self.schema, self.format_mask.gsub('"', '\"')]
+      end
+      declaration + sumry + "\n" + out.text
     end
                              
     #xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
@@ -458,10 +475,10 @@ EOF
   alias refresh_doc display_xml
 
   def string_parse(buffer)
-    raw_header = buffer.slice!(/<\?dynarex[^>]+>/)
+    @raw_header = buffer.slice!(/<\?dynarex[^>]+>/)
 
-    if raw_header then
-      header = raw_header[/<?dynarex (.*)?>/,1]
+    if @raw_header then
+      header = @raw_header[/<?dynarex (.*)?>/,1]
 
       r1 = /([\w\-]+\s*\=\s*'[^']*)'/
       r2 = /([\w\-]+\s*\=\s*"[^"]*)"/

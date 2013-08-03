@@ -144,18 +144,45 @@ EOF
 
     #format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
     #format_mask = @doc.root.element('summary/format_mask/text()')
-    format_mask = self.format_mask
-    format_mask.gsub!(/\[[^!\]]+\]/) {|x| x[1] }
-    xslt_format = format_mask.gsub(/\s(?=\[!\w+\])/,'<xsl:text> </xsl:text>')
-      .gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
-    
-    xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
 
-    xslt  = Nokogiri::XSLT(xsl_buffer)
-    out = xslt.transform(Nokogiri::XML(@doc.to_s))
+    if self.summary[:rawdoc_type] == 'rowx' then
+      a = self.fields.map do |field|
+  "<xsl:if test=\"%s != ''\">
+<xsl:text>\n</xsl:text>%s: <xsl:value-of select='%s'/>
+  </xsl:if>" % ([field]*3)
+      end
+
+      xslt_format = a.join      
+
+      xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
+      xslt  = Nokogiri::XSLT(xsl_buffer)
+      out = xslt.transform(Nokogiri::XML(@doc.to_s))
+      
+      declaration = %Q(<?dynarex schema="%s"?>\n--+) % self.schema
+      declaration + out.text
+      
+    else
+      
+      format_mask = self.format_mask
+      format_mask.gsub!(/\[[^!\]]+\]/) {|x| x[1] }
+      xslt_format = format_mask.gsub(/\s(?=\[!\w+\])/,'<xsl:text> </xsl:text>')
+        .gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
+        
+      xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
+      xslt  = Nokogiri::XSLT(xsl_buffer)
+      
+      out = xslt.transform(Nokogiri::XML(@doc.to_s))
+      declaration = %Q(<?dynarex schema="%s" format_mask="%s"?>\n) % 
+        [self.schema, self.format_mask]
+      out.text
+    end
+                             
+    #xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
+    #xslt  = Nokogiri::XSLT(xsl_buffer)
+    #out = xslt.transform(Nokogiri::XML(@doc.to_s))
     #jr250811 puts 'xsl_buffer: ' + xsl_buffer
     #jr250811 puts 'doc_to_s: ' + @doc.to_s
-    out.text
+    #out.text
     #jr231211 Rexslt.new(xsl_buffer, @doc.to_s).to_s
 
   end
@@ -525,6 +552,7 @@ EOF
         
       when '--+'
         
+        self.summary[:rawdoc_type] = 'rowx'
         raw_lines.shift
         
         key = raw_lines.first[/^[^:]+/]
