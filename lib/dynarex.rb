@@ -581,10 +581,14 @@ EOF
           populated_lines.each do |line|
             line << field.to_s + ':' if line.grep(/^#{field.to_s}:/).empty?            
           end
-        end        
+        end
+        
         xml = RowX.new(populated_lines.join("\n")).to_xml
-        Rexle.new(xml).root.xpath('item').map{|x| x.xpath('*/text()')}
 
+        a2 = Rexle.new(xml).root.xpath('item').inject([]) do |r,x|
+          r << @fields.map {|field| x.text(field.to_s) }
+        end
+        
     else
         
       raw_lines.map.with_index do |x,i|
