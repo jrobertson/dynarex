@@ -403,6 +403,11 @@ EOF
 
   private
 
+  def add_id(a)
+    @default_key = :id
+    @fields << :id
+    a.each.with_index{|x,i| x << (i+1).to_s}    
+  end
 
   def create_find(fields)
 
@@ -582,16 +587,23 @@ EOF
             line << field.to_s + ':' if line.grep(/^#{field.to_s}:/).empty?            
           end
         end
-        
-        xml = RowX.new(populated_lines.join("\n")).to_xml
 
+        xml = RowX.new(populated_lines.map{|x| x.join("\n")}.join("\n\n")).to_xml
         a2 = Rexle.new(xml).root.xpath('item').inject([]) do |r,x|
           r << @fields.map {|field| x.text(field.to_s) }
         end
+
+        # if there is no field value for the first field then 
+        #   the default_key is invalid. The default_key is changed to an ID.
+        if a2.detect {|x| x.first == ''} then
+          add_id(a2)
+        end
+        
+        a2
         
     else
         
-      raw_lines.map.with_index do |x,i|
+      a2 = raw_lines.map.with_index do |x,i|
                 
         begin
           field_names, field_values = RXRawLineParser.new(@format_mask).parse(x)
@@ -601,6 +613,9 @@ EOF
         field_values
       end
       
+      a3 = a2.map(&:first)
+      add_id(a2) if a3 != a3.uniq 
+      a2
     end
 
     a = lines.map.with_index do |x,i| 
