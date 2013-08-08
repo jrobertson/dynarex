@@ -587,8 +587,21 @@ EOF
             line << field.to_s + ':' if line.grep(/^#{field.to_s}:/).empty?            
           end
         end
+        
+        #a3 = txt.split(/(?:\n|^\-+$)\n/)
+        a3 = populated_lines.map{|x| x.join("\n")}
+        # get the fields
+        a4 = a3.map{|x| x.scan(/\w+(?=:)/)}.flatten(1).uniq
+        a5 = a3.map do |xlines|
 
-        xml = RowX.new(populated_lines.map{|x| x.join("\n")}.join("\n\n")).to_xml
+          missing_fields = a4 - xlines.scan(/^\w+(?=:)/)
+          r = xlines.lines.map(&:strip)
+          r += missing_fields.map{|x| x + ":"}
+          r.sort.join("\n")
+
+        end        
+        
+        xml = RowX.new(a5.join("\n\n")).to_xml
         a2 = Rexle.new(xml).root.xpath('item').inject([]) do |r,x|
           r << @fields.map {|field| x.text(field.to_s) }
         end
