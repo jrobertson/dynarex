@@ -504,7 +504,7 @@ EOF
 
     #buffer = rowx if rowx
     
-    raw_lines = buffer.gsub(/^\s*#[^\n]+/,'').lines
+    raw_lines = buffer.gsub(/^\s*#[^\n]+/,'').lines.to_a
     
     if raw_summary then
       a_summary = raw_summary.split(',').map(&:strip)
@@ -609,9 +609,7 @@ EOF
     else
         
       a2 = raw_lines.map.with_index do |x,i|
-        
-        next if x[/^\s+$/]          
-        
+        next if x[/^\s+$/]
         begin
           field_names, field_values = RXRawLineParser.new(@format_mask).parse(x)
         rescue
