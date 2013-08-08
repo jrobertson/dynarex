@@ -510,7 +510,8 @@ EOF
       a_summary = raw_summary.split(',').map(&:strip)
       
       @summary = {}
-
+      raw_lines.shift while raw_lines.first.strip.empty?
+      
       # fetch any summary lines
       while not raw_lines.empty? and \
           raw_lines.first[/#{a_summary.join('|')}:\s+[\w\*\-\+]+/] do
@@ -618,8 +619,10 @@ EOF
         field_values
       end
       
-      a3 = a2.map(&:first)
+      a2.compact!
+      a3 = a2.compact.map(&:first)
       add_id(a2) if a3 != a3.uniq 
+
       a2
     end
 
