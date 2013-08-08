@@ -504,8 +504,7 @@ EOF
 
     #buffer = rowx if rowx
     
-    raw_lines = buffer.gsub(/^\s*#[^\n]+/,'').gsub(/\n\n/,"\n")\
-        .strip.split(/\r?\n|\r(?!\n)/)
+    raw_lines = buffer.gsub(/^\s*#[^\n]+/,'').lines
     
     if raw_summary then
       a_summary = raw_summary.split(',').map(&:strip)
@@ -550,8 +549,10 @@ EOF
     @summary[:recordx_type] = 'dynarex'
     @summary[:schema] = @schema
     @summary[:format_mask] = @format_mask
+       
+    raw_lines.shift
 
-    lines = case raw_lines.first
+    lines = case raw_lines.first.chomp
       
       when '---'
 
@@ -573,23 +574,12 @@ EOF
         yprocs[yaml.class.to_s.to_sym].call yaml      
         
       when '--+'
-        
-        self.summary[:rawdoc_type] = 'rowx'
-        raw_lines.shift
-        
-        key = raw_lines.first[/^[^:]+/]
-        populated_lines = raw_lines.inject([]) do |r,x| 
-          x[/^#{key}:/] ? r << [x] : r.last << x;  r
-        end
 
-        @fields.each do |field|
-          populated_lines.each do |line|
-            line << field.to_s + ':' if line.grep(/^#{field.to_s}:/).empty?            
-          end
-        end
+        self.summary[:rawdoc_type] = 'rowx'
+
+        raw_lines.shift    
         
-        #a3 = txt.split(/(?:\n|^\-+$)\n/)
-        a3 = populated_lines.map{|x| x.join("\n")}
+        a3 = raw_lines.join.gsub(/^\-+$/,'').split(/\n\n/)
         # get the fields
         a4 = a3.map{|x| x.scan(/\w+(?=:)/)}.flatten(1).uniq
         a5 = a3.map do |xlines|
@@ -601,9 +591,11 @@ EOF
 
         end        
         
-        xml = RowX.new(a5.join("\n\n")).to_xml
-        a2 = Rexle.new(xml).root.xpath('item').inject([]) do |r,x|
-          r << @fields.map {|field| x.text(field.to_s) }
+        xml = RowX.new(a5.join("\n")).to_xml
+        a2 = Rexle.new(xml).root.xpath('item').inject([]) do |r,x|          
+          r << @fields.map do |field| 
+            x.text(a4.all? {|x| x.length > 1} ? field.to_s : field.to_s.chr) 
+          end
         end
 
         # if there is no field value for the first field then 
@@ -617,7 +609,9 @@ EOF
     else
         
       a2 = raw_lines.map.with_index do |x,i|
-                
+        
+        next if x[/^\s+$/]          
+        
         begin
           field_names, field_values = RXRawLineParser.new(@format_mask).parse(x)
         rescue

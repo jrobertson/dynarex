@@ -609,7 +609,9 @@ EOF
     else
         
       a2 = raw_lines.map.with_index do |x,i|
-                
+        
+        next if x[/^\s+$/]          
+        
         begin
           field_names, field_values = RXRawLineParser.new(@format_mask).parse(x)
         rescue
