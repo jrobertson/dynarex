@@ -320,7 +320,7 @@ EOF
     xml = RexleBuilder.new
     a = xml.send @root_name do
       xml.summary do
-        @summary.each{|key,value| xml.send key, value}
+        @summary.each{|key,value| xml.send key, value.to_s}
       end
       if @records then
         xml.records do
@@ -766,6 +766,7 @@ EOF
 
     i = @doc.root.xpath('max(records/*/attribute::id)') || 0
     fields = @doc.root.text('summary/schema')[/\(.*\)/].scan(/\w+/)
+    puts '**fields : ' + fields.inspect
     fields << @default_key unless fields.include? @default_key
     
     @doc.root.xpath('records/*').inject({}) do |result,row|

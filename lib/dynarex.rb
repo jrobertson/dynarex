@@ -321,7 +321,6 @@ EOF
     a = xml.send @root_name do
       xml.summary do
         @summary.each{|key,value| xml.send key, value}
-        xml.send 'default_key', @default_key.to_s unless @summary['default_key']
       end
       if @records then
         xml.records do
@@ -406,6 +405,7 @@ EOF
 
   def add_id(a)
     @default_key = :id
+    @summary[:default_key] = 'id'
     @fields << :id
     a.each.with_index{|x,i| x << (i+1).to_s}    
   end
@@ -512,7 +512,7 @@ EOF
       
       @summary = {}
       raw_lines.shift while raw_lines.first.strip.empty?
-      
+
       # fetch any summary lines
       while not raw_lines.empty? and \
           raw_lines.first[/#{a_summary.join('|')}:\s+[\w\*\-\+]+/] do
@@ -721,6 +721,7 @@ EOF
     @format_mask = @doc.root.element('summary/format_mask/text()')
    
     @fields = @format_mask.to_s.scan(/\[!(\w+)\]/).flatten.map(&:to_sym) if @format_mask 
+    @fields << @default_key if @default_key
 
     if @schema and @schema.match(/(\w+)\(([^\)]+)/) then
       @record_name, raw_fields = @schema.match(/(\w+)\(([^\)]+)/).captures
@@ -728,15 +729,17 @@ EOF
     end
 
     if @fields then
+
       @default_key = @fields[0] unless @default_key     
       # load the record query handler methods
       attach_record_methods
     else
 
       #jr080912 @default_key = @doc.root.xpath('records/*/*').first.name
-
       @default_key = @doc.root.element('records/./.[1]').name
     end
+    
+    @summary[:default_key] = @default_key.to_s
 
     if @doc.root.xpath('records/*').length > 0 then
       @record_name = @doc.root.element('records/*[1]').name            
@@ -766,8 +769,7 @@ EOF
   def records_to_h()
 
     i = @doc.root.xpath('max(records/*/attribute::id)') || 0
-    fields = @doc.root.text('summary/schema')[/\(.*\)/].scan(/\w+/)
-    fields << @default_key unless fields.include? @default_key
+    #jr090813 fields = @doc.root.text('summary/schema')[/\(.*\)/].scan(/\w+/)
     
     @doc.root.xpath('records/*').inject({}) do |result,row|
 
@@ -783,9 +785,9 @@ EOF
       created = row.attributes[:created] if row.attributes[:created]
       last_modified = row.attributes[:last_modified] if row.attributes[:last_modified]
 
-      body = fields.inject({}) do |r,field|
+      body = @fields.inject({}) do |r,field|
         
-        node = row.element field
+        node = row.element field.to_s
         
         if node then
           text = node.text.unescape
