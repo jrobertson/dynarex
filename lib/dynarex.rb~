@@ -321,6 +321,7 @@ EOF
     a = xml.send @root_name do
       xml.summary do
         @summary.each{|key,value| xml.send key, value}
+        xml.send 'default_key', @default_key.to_s if @default_key
       end
       if @records then
         xml.records do
