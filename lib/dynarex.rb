@@ -506,8 +506,9 @@ EOF
     #buffer = rowx if rowx
     
     raw_lines = buffer.gsub(/^\s*#[^\n]+/,'').lines.to_a
-    
+
     if raw_summary then
+
       a_summary = raw_summary.split(',').map(&:strip)
       
       @summary = {}
@@ -515,8 +516,9 @@ EOF
 
       # fetch any summary lines
       while not raw_lines.empty? and \
-          raw_lines.first[/#{a_summary.join('|')}:\s+[\w\*\-\+]+/] do
-        label, val = raw_lines.shift.match(/(\w+):\s+([^$]+)$/).captures
+          raw_lines.first[/#{a_summary.join('|')}:\s+\S+/] do
+
+        label, val = raw_lines.shift.chomp.match(/(\w+):\s+([^$]+)$/).captures
         @summary[label] = val
       end
     end
@@ -552,7 +554,7 @@ EOF
     @summary[:schema] = @schema
     @summary[:format_mask] = @format_mask
        
-    raw_lines.shift
+    raw_lines.shift while raw_lines.first.strip.empty?
 
     lines = case raw_lines.first.chomp
       
@@ -578,10 +580,9 @@ EOF
       when '--+'
 
         self.summary[:rawdoc_type] = 'rowx'
+        raw_lines.shift
 
-        raw_lines.shift    
-        
-        a3 = raw_lines.join.gsub(/^\-+$/,'').split(/\n\n/)
+        a3 = raw_lines.join.strip.gsub(/^\-+$/,'').split(/\n\n/)
         # get the fields
         a4 = a3.map{|x| x.scan(/\w+(?=:)/)}.flatten(1).uniq
         a5 = a3.map do |xlines|
@@ -592,8 +593,9 @@ EOF
           r.sort.join("\n")
 
         end        
-        
+
         xml = RowX.new(a5.join("\n")).to_xml
+
         a2 = Rexle.new(xml).root.xpath('item').inject([]) do |r,x|          
           r << @fields.map do |field| 
             x.text(a4.all? {|x| x.length > 1} ? field.to_s : field.to_s.chr) 
