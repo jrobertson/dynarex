@@ -14,6 +14,7 @@ require 'rxraw-lineparser'
 require 'yaml'
 require 'rowx'
 require 'nokogiri'
+require 'ostruct'
 
 class Dynarex
 
@@ -89,14 +90,14 @@ class Dynarex
     @summary[:type] = v
   end
 
-# Returns the hash representation of the document summary.
-  
+  # Returns the hash representation of the document summary.
+  #
   def summary
     @summary
   end
 
-#Return a Hash (which can be edited) containing all records.
-  
+  # Return a Hash (which can be edited) containing all records.
+  #
   def records
     
     load_records if @dirty_flag == true
@@ -111,13 +112,21 @@ class Dynarex
     
   end
   
-#Returns a ready-only snapshot of records as a simple Hash.  
+  # Returns a ready-only snapshot of records as a simple Hash.  
+  #
   def flat_records
     load_records if @dirty_flag == true
     @flat_records
   end
   
   alias to_h flat_records
+  alias to_a flat_records
+  
+  # Returns an array snapshot of OpenStruct records
+  #
+  def ro_records
+    flat_records.map {|record| OpenStruct.new record }
+  end
   
 # Returns all records as a string format specified by the summary format_mask field.  
 

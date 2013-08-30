@@ -490,6 +490,10 @@ EOF
   alias refresh_doc display_xml
 
   def string_parse(buffer)
+    
+    buffer.gsub!(/.>/) {|x| x[0] != '?' ? x.sub(/>/,'&gt;') : x }
+    buffer.gsub!(/<./) {|x| x[1] != '?' ? x.sub(/</,'&lt;') : x }
+
     @raw_header = buffer.slice!(/<\?dynarex[^>]+>/)
 
     if @raw_header then
@@ -622,8 +626,11 @@ EOF
     else
         
       a2 = raw_lines.map.with_index do |x,i|
+        
         next if x[/^\s+$/]
+        
         begin
+          
           field_names, field_values = RXRawLineParser.new(@format_mask).parse(x)
         rescue
           raise "input file parser error at line " + (i + 1).to_s + ' --> ' + x
@@ -637,7 +644,7 @@ EOF
 
       a2
     end
-
+    
     a = lines.map.with_index do |x,i| 
       created = Time.now.to_s
       h = Hash[@fields.zip(x.map{|t| t.to_s[/^---/] ? YAML.load(t) : t})]
