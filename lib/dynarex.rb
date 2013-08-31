@@ -775,6 +775,7 @@ EOF
   def load_records
 
     @records = records_to_h
+    @records = @records.take @limit_by if @limit_by
     @records.instance_eval do
        def delete_item(i)
          self.delete self.keys[i]
@@ -795,7 +796,7 @@ EOF
     i = @doc.root.xpath('max(records/*/attribute::id)') || 0
     #jr090813 fields = @doc.root.text('summary/schema')[/\(.*\)/].scan(/\w+/)
     
-    @doc.root.xpath('records/*').inject({}) do |result,row|
+    a = @doc.root.xpath('records/*').inject({}) do |result,row|
 
       created = Time.now.to_s
       last_modified = ''
