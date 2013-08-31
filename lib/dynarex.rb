@@ -18,7 +18,8 @@ require 'ostruct'
 
 class Dynarex
 
-  attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :order, :type
+  attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, 
+      :order, :type, :limit_by
   
   
 #Create a new dynarex document from 1 of the following options:
@@ -68,7 +69,7 @@ class Dynarex
   def inspect()
     "<object #%s>" % [self.object_id]
   end
-  
+    
   def order=(value)
     
     self.summary.merge!({order: value})    
@@ -88,6 +89,10 @@ class Dynarex
     @order = 'descending' if v == 'feed'
     @type = v
     @summary[:type] = v
+  end
+  
+  def limit_by=(val)
+    @limit_by = val.to_i
   end
 
   # Returns the hash representation of the document summary.
@@ -676,6 +681,7 @@ EOF
     #refresh_doc
     #load_records  
     @flat_records = @records.values.map{|x| x[:body]}
+    @flat_records = @flat_records.take @limit_by if @limit_by
     rebuild_doc
     self
   end
@@ -816,7 +822,7 @@ EOF
       end      
 
       result.merge body[@default_key.to_sym] => {id: id, created: created, last_modified: last_modified, body: body}
-    end
+    end    
 
   end
 
