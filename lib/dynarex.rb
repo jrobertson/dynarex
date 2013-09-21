@@ -240,7 +240,10 @@ EOF
     buffer = yield if block_given?          
     string_parse buffer
   end  
-  
+
+
+  alias import parse  
+
 #Create a record from a hash containing the field name, and the field value.
 #  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
 #  dynarex.create name: Bob, age: 52
