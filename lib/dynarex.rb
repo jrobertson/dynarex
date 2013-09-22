@@ -237,7 +237,7 @@ EOF
 #Parses 1 or more lines of text to create or update existing records.
 
   def parse(x=nil)
-    if x is_a? String then
+    if x.is_a? String then
       buffer = x
       buffer = yield if block_given?          
       string_parse buffer
