@@ -48,7 +48,7 @@ class Dynarex
     @summary[:format_mask] = @format_mask
   end
 
-  def import(options={})
+  def foreign_import(options={})
     o = {xml: '', schema: ''}.merge(options)
     h = {xml: o[:xml], schema: @schema, foreign_schema: o[:schema]}
     buffer = DynarexImport.new(h).to_xml
@@ -236,9 +236,14 @@ EOF
   
 #Parses 1 or more lines of text to create or update existing records.
 
-  def parse(buffer='')
-    buffer = yield if block_given?          
-    string_parse buffer
+  def parse(x=nil)
+    if x is_a? String then
+      buffer = x
+      buffer = yield if block_given?          
+      string_parse buffer
+    else
+      foreign_import x
+    end
   end  
 
 
