@@ -66,6 +66,12 @@ class Dynarex
     @summary[:format_mask] = @format_mask
   end
   
+  def insert(raw_params)
+    record = make_record(raw_params)
+    @doc.root.element('records/*').insert_before record
+    @dirty_flag = true
+  end
+
   def inspect()
     "<object #%s>" % [self.object_id]
   end
@@ -457,21 +463,7 @@ EOF
 
   def hash_create(raw_params={}, id=nil)
 
-    params = Hash[raw_params.keys.map(&:to_sym).zip(raw_params.values)]
-
-    fields = capture_fields(params)    
-    record = Rexle::Element.new @record_name
-
-    fields.each do |k,v|
-      element = Rexle::Element.new(k.to_s)              
-      element.root.text = v.to_s.gsub('<','&lt;').gsub('>','&gt;') if v
-      record.add element if record
-    end
-    
-    id = (@doc.root.xpath('max(records/*/attribute::id)') || '0').succ unless id
-
-    attributes = {id: id.to_s, created: Time.now.to_s, last_modified: nil}
-    attributes.each {|k,v| record.add_attribute(k, v)}
+    record = make_record(raw_params)
     if @order == 'descending' then
       element = @doc.root.element('records/.[1]')
       if element then
@@ -499,6 +491,26 @@ EOF
     @doc.xml(opt) #jr230711 pretty: true
   end
 
+  def make_record(raw_params)
+
+    params = Hash[raw_params.keys.map(&:to_sym).zip(raw_params.values)]
+
+    fields = capture_fields(params)    
+    record = Rexle::Element.new @record_name
+
+    fields.each do |k,v|
+      element = Rexle::Element.new(k.to_s)              
+      element.root.text = v.to_s.gsub('<','&lt;').gsub('>','&gt;') if v
+      record.add element if record
+    end
+    
+    id = (@doc.root.xpath('max(records/*/attribute::id)') || '0').succ unless id
+
+    attributes = {id: id.to_s, created: Time.now.to_s, last_modified: nil}
+    attributes.each {|k,v| record.add_attribute(k, v)}
+
+    record
+  end
 
   alias refresh_doc display_xml
 
