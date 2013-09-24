@@ -764,7 +764,8 @@ EOF
     @default_key = @doc.root.element('summary/default_key/text()') 
     @format_mask = @doc.root.element('summary/format_mask/text()')
    
-    @fields = @format_mask.to_s.scan(/\[!(\w+)\]/).flatten.map(&:to_sym) if @format_mask 
+    @fields = @schema[/([^(]+)\)$/,1].split(/\s*,\s*/).map(&:to_sym)
+ 
     @fields << @default_key if @default_key
 
     if @schema and @schema.match(/(\w+)\(([^\)]+)/) then
