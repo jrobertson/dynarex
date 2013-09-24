@@ -34,12 +34,16 @@ class Dynarex
     #puts Rexle.version
     @delimiter = ' '   
     open(location) if location
-    @dirty_flag = false
+    if @order == 'descending' then
+      @records = records_to_h(:descending) 
+      rebuild_doc
+    end
+    #jr240913 @dirty_flag = false
   end
 
   def add(x)
     @doc.root.add x
-    load_records
+    @dirty_flag = true
     self
   end
 
@@ -125,7 +129,7 @@ class Dynarex
   
   # Returns a ready-only snapshot of records as a simple Hash.  
   #
-  def flat_records
+  def flat_records    
     load_records if @dirty_flag == true
     @flat_records
   end
@@ -337,7 +341,7 @@ EOF
     self
   end  
 
-  def rebuild_doc
+  def rebuild_doc(state=:internal)
 
     reserved_keywords = ( 
                           Object.public_methods | \
@@ -350,10 +354,16 @@ EOF
       xml.summary do
         @summary.each{|key,value| xml.send key, value}
       end
-      if @records then
-        xml.records do
+      records = @records.to_a
 
-          @records.each do |k, item|
+
+      if records then
+
+        records.reverse! if @order == 'descending' and state == :external
+
+        xml.records do
+           
+          records.each do |k, item|
             #p 'foo ' + item.inspect
             xml.send(@record_name, {id: item[:id], created: item[:created], \
                 last_modified:  item[:last_modified]}, '') do
@@ -372,7 +382,9 @@ EOF
       end # end of if @records
     end
 
-    @doc = Rexle.new a
+    doc = Rexle.new(a)
+    return doc if state != :internal
+    @doc = doc
   end
   
   def record(id)
@@ -464,17 +476,7 @@ EOF
   def hash_create(raw_params={}, id=nil)
 
     record = make_record(raw_params)
-    if @order == 'descending' then
-      element = @doc.root.element('records/.[1]')
-      if element then
-        element.insert_before record
-      else
-        @doc.root.element('records').add record
-      end       
-      
-    else
-      @doc.root.element('records').add record            
-    end
+    @doc.root.element('records').add record            
 
   end
 
@@ -487,8 +489,8 @@ EOF
   def display_xml(opt={})
 
     load_records if @dirty_flag == true
-    rebuild_doc()
-    @doc.xml(opt) #jr230711 pretty: true
+    doc = rebuild_doc(:external)
+    doc.xml(opt) #jr230711 pretty: true
   end
 
   def make_record(raw_params)
@@ -788,7 +790,8 @@ EOF
 
     if @doc.root.xpath('records/*').length > 0 then
       @record_name = @doc.root.element('records/*[1]').name            
-      load_records 
+      #jr240913 load_records
+      @dirty_flag = true
     end
 
   end  
@@ -796,7 +799,9 @@ EOF
   def load_records
 
     @records = records_to_h
+
     @records = @records.take @limit_by if @limit_by
+    
     @records.instance_eval do
        def delete_item(i)
          self.delete self.keys[i]
@@ -812,12 +817,14 @@ EOF
     puts @doc.to_s
   end
  
-  def records_to_h()
+  def records_to_h(state=:ascending)
 
     i = @doc.root.xpath('max(records/*/attribute::id)') || 0
     #jr090813 fields = @doc.root.text('summary/schema')[/\(.*\)/].scan(/\w+/)
-    
-    a = @doc.root.xpath('records/*').inject({}) do |result,row|
+    records = @doc.root.xpath('records/*')
+
+    recs = (state == :descending ? records.reverse : records)
+    a = recs.inject({}) do |result,row|
 
       created = Time.now.to_s
       last_modified = ''
