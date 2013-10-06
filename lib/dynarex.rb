@@ -407,6 +407,7 @@ EOF
       
       h = {limit: 11}.merge(opt)
       doc = Rexle.new(self.to_xslt)
+
       e = doc.element('//xsl:apply-templates[2]')
       doc2 = Rexle.new "<xsl:sort order='descending' data-type='number' select='@id'/>"
       e.add doc2.root
@@ -433,7 +434,14 @@ EOF
       x.add Rexle::Element.new('pubDate').add_text dt.to_s 
     end
 
+    File.open('dynarex.xsl','w'){|f| f.write xslt}
+    File.open('dynarex.xml','w'){|f| f.write doc.xml}
     xml = Rexslt.new(xslt, doc.xml).to_s
+=begin
+    xslt  = Nokogiri::XSLT(xslt)
+    out = xslt.transform(Nokogiri::XML(doc.root.xml))
+=end
+
     Rexle.new("<rss version='2.0'>%s</rss>" % xml).xml(pretty: true)
   end
   
@@ -545,7 +553,8 @@ EOF
 
     #buffer = rowx if rowx
     
-    raw_lines = buffer.gsub(/^\s*#[^\n]+/,'').lines.to_a
+    #jr061013 raw_lines = buffer.gsub(/^\s*#[^\n]+/,'').lines.to_a
+    raw_lines = buffer.lines.to_a
 
     if raw_summary then
 
@@ -562,7 +571,8 @@ EOF
         @summary[label] = val
       end
     end
-        
+
+
     if @type == 'checklist' then
       
       # extract the brackets from the line
@@ -595,7 +605,7 @@ EOF
     @summary[:format_mask] = @format_mask
        
     raw_lines.shift while raw_lines.first.strip.empty?
-
+    
     lines = case raw_lines.first.chomp
       
       when '---'
@@ -622,19 +632,20 @@ EOF
         self.summary[:rawdoc_type] = 'rowx'
         raw_lines.shift
 
-        a3 = raw_lines.join.strip.gsub(/^\-+$/,'').split(/\n\n/)
+        a3 = raw_lines.join.strip.gsub(/^\-+$/,'').split(/\n\n(?=\w+:)/)
         # get the fields
         a4 = a3.map{|x| x.scan(/\w+(?=:)/)}.flatten(1).uniq
         a5 = a3.map do |xlines|
 
           missing_fields = a4 - xlines.scan(/^\w+(?=:)/)
-          r = xlines.lines.map(&:strip)
+          #r061013 r = xlines.lines.map(&:strip)
+          r = xlines.split(/\n(\w+:.*)/)
           r += missing_fields.map{|x| x + ":"}
           r.sort.join("\n")
 
         end        
 
-        xml = RowX.new(a5.join("\n")).to_xml
+        xml = RowX.new(a5.join("\n").strip).to_xml
 
         a2 = Rexle.new(xml).root.xpath('item').inject([]) do |r,x|          
           r << @fields.map do |field| 
@@ -651,10 +662,10 @@ EOF
         a2
         
     else
-        
+    raw_lines = raw_lines.join("\n").gsub(/^\s*#[^\n]+/,'').lines.to_a        
       a2 = raw_lines.map.with_index do |x,i|
-        
-        next if x[/^\s+$/]
+
+        next if x[/^\s+$|\n\s*#/]
         
         begin
           
