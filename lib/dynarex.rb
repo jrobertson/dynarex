@@ -633,6 +633,7 @@ EOF
         raw_lines.shift
 
         a3 = raw_lines.join.strip.gsub(/^\-+$/,'').split(/\n\n(?=\w+:)/)
+
         # get the fields
         a4 = a3.map{|x| x.scan(/\w+(?=:)/)}.flatten(1).uniq
         a5 = a3.map do |xlines|
@@ -779,7 +780,7 @@ EOF
    
     @fields = @schema[/([^(]+)\)$/,1].split(/\s*,\s*/).map(&:to_sym)
  
-    @fields << @default_key if @default_key
+    @fields << @default_key if @default_key and !@fields.include? @default_key
 
     if @schema and @schema.match(/(\w+)\(([^\)]+)/) then
       @record_name, raw_fields = @schema.match(/(\w+)\(([^\)]+)/).captures
