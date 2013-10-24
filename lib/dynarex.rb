@@ -15,6 +15,8 @@ require 'yaml'
 require 'rowx'
 require 'nokogiri'
 require 'ostruct'
+require 'table-formatter'
+
 
 class Dynarex
 
@@ -48,6 +50,7 @@ class Dynarex
   end
 
   def delimiter=(separator)
+    @delimiter = separator
     @format_mask = @format_mask.to_s.gsub(/\s/, separator)
     @summary[:format_mask] = @format_mask
   end
@@ -150,6 +153,7 @@ class Dynarex
   end
 
   def to_s
+
 xsl_buffer =<<EOF
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
 <xsl:output encoding="UTF-8"
@@ -198,6 +202,10 @@ EOF
       end
       declaration + sumry + "\n--+\n" + out.text
       
+    elsif self.delimiter.length > 0 then
+      tfo = TableFormatter.new border: false, nowrap: true, divider: self.delimiter
+      tfo.source = self.to_h.map{|x| x.values}
+      tfo.display
     else
       
       format_mask = self.format_mask
@@ -264,7 +272,7 @@ EOF
 #  dynarex.create name: Bob, age: 52
 
   def create(arg, id=nil)
-    
+    raise 'Dynarex#create(): input error: no arg provided' unless arg
     #jr291012 rebuild_doc()
     #jr291012 (load_records; rebuild_doc) if @dirty_flag == true
     methods = {Hash: :hash_create, String: :create_from_line}
@@ -780,7 +788,8 @@ EOF
    
     @fields = @schema[/([^(]+)\)$/,1].split(/\s*,\s*/).map(&:to_sym)
  
-    @fields << @default_key if @default_key and !@fields.include? @default_key
+    @fields << @default_key if @default_key and \
+                        !@fields.include? @default_key.to_sym
 
     if @schema and @schema.match(/(\w+)\(([^\)]+)/) then
       @record_name, raw_fields = @schema.match(/(\w+)\(([^\)]+)/).captures
