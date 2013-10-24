@@ -34,7 +34,7 @@ class Dynarex
 
   def initialize(location=nil)
     #puts Rexle.version
-    @delimiter = ' '   
+    @delimiter = ''   
     open(location) if location
     if @order == 'descending' then
       @records = records_to_h(:descending) 
@@ -50,7 +50,15 @@ class Dynarex
   end
 
   def delimiter=(separator)
+
     @delimiter = separator
+
+    if separator.length > 0 then 
+      @summary[:delimiter]
+    else
+      @summary.delete :delimiter
+    end
+
     @format_mask = @format_mask.to_s.gsub(/\s/, separator)
     @summary[:format_mask] = @format_mask
   end
@@ -182,6 +190,19 @@ EOF
                                          self.summary[x]}.join("\n")
     end
 
+    if @raw_header then
+      declaration = @raw_header
+    else
+      smry_fields = %i(schema)              
+      smry_fields << :delimiter if self.delimiter.length > 0
+      s = smry_fields.map {|x| "%s=\"%s\"" % [x, self.send(x)]}.join ' '
+      #declaration = "<?dynarex %s ?>" % s
+      declaration = %Q(<?dynarex %s format_mask="%s"?>\n) % 
+        [s, self.format_mask.gsub('"', '\"')]
+    end
+
+    header = declaration + sumry
+
     if self.summary[:rawdoc_type] == 'rowx' then
       a = self.fields.map do |field|
   "<xsl:if test=\"%s != ''\">
@@ -195,17 +216,14 @@ EOF
       xslt  = Nokogiri::XSLT(xsl_buffer)
       out = xslt.transform(Nokogiri::XML(@doc.to_s))
       
-      if @raw_header then
-        declaration = @raw_header
-      else        
-        declaration = %Q(<?dynarex schema="%s"?>\n) % self.schema.gsub('"', '\"')
-      end
-      declaration + sumry + "\n--+\n" + out.text
+      header + "\n--+\n" + out.text
       
     elsif self.delimiter.length > 0 then
+
       tfo = TableFormatter.new border: false, nowrap: true, divider: self.delimiter
-      tfo.source = self.to_h.map{|x| x.values}
-      tfo.display
+      tfo.source = self.to_h.map{|x| x.values}      
+      header + tfo.display
+
     else
       
       format_mask = self.format_mask
@@ -217,13 +235,7 @@ EOF
       xslt  = Nokogiri::XSLT(xsl_buffer)
       
       out = xslt.transform(Nokogiri::XML(@doc.to_s))
-      if @raw_header then
-        declaration = @raw_header
-      else              
-        declaration = %Q(<?dynarex schema="%s" format_mask="%s"?>\n) % 
-          [self.schema, self.format_mask.gsub('"', '\"')]
-      end
-      declaration + sumry + "\n" + out.text
+      header + "\n" + out.text
     end
                              
     #xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
