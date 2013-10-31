@@ -185,9 +185,9 @@ EOF
     sumry = ''
     
     if raw_summary_fields then
-      summary_fields = raw_summary_fields.split(',') 
+      summary_fields = raw_summary_fields.split(',') # .map(&:to_sym) 
       sumry = "\n" + summary_fields.map {|x| x + ': ' + \
-                                         self.summary[x]}.join("\n")
+                                         self.summary[x.to_sym]}.join("\n")
     end
 
     if @raw_header then
