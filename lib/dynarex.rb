@@ -268,7 +268,7 @@ EOF
 
   def parse(x=nil)
     if x.is_a? String then
-      buffer = x
+      buffer = x.clone
       buffer = yield if block_given?          
       string_parse buffer
     else
