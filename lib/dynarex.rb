@@ -309,6 +309,13 @@ EOF
     self
   end
 
+  def default_key=(id)
+    @default_key = id.to_sym
+    @summary[:default_key] = id
+    @fields << id.to_sym
+  end
+
+
 #Updates a record from an id and a hash containing field name and field value.
 #  dynarex.update 4, name: Jeff, age: 38  
   
@@ -523,6 +530,8 @@ EOF
 
   def make_record(raw_params)
 
+    id = (@doc.root.xpath('max(records/*/attribute::id)') || '0').succ unless id
+    raw_params.merge!(id: id) if @default_key == :id
     params = Hash[raw_params.keys.map(&:to_sym).zip(raw_params.values)]
 
     fields = capture_fields(params)    
@@ -534,7 +543,7 @@ EOF
       record.add element if record
     end
     
-    id = (@doc.root.xpath('max(records/*/attribute::id)') || '0').succ unless id
+
 
     attributes = {id: id.to_s, created: Time.now.to_s, last_modified: nil}
     attributes.each {|k,v| record.add_attribute(k, v)}
