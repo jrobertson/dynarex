@@ -377,12 +377,19 @@ EOF
                         )
     
     xml = RexleBuilder.new
-    a = xml.send @root_name do
-      xml.summary do
-        @summary.each{|key,value| xml.send key, value}
-      end
-      records = @records.to_a
 
+    a = xml.send @root_name do
+
+      xml.summary do
+
+        @summary.each do |key,value| 
+
+          xml.send key, value.gsub('&','&amp;').gsub('>','&gt;')\
+            .gsub('<','&lt;')
+        end
+      end
+
+      records = @records.to_a
 
       if records then
 
