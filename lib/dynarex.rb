@@ -398,7 +398,8 @@ EOF
                 #name = name.to_s.prepend('._').to_sym if reserved_keywords.include? name
                 name = ('._' + name.to_s).to_sym if reserved_keywords.include? name
                 val = value.send(value.is_a?(String) ? :to_s : :to_yaml)                
-                xml.send(name, val.gsub('>','&gt;').gsub('<','&lt;'))
+                xml.send(name, val.gsub('&','&amp;').gsub('>','&gt;')
+                      .gsub('<','&lt;'))
               end
             end
           end
