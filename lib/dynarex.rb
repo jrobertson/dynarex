@@ -529,8 +529,9 @@ EOF
     fields
   end
   
-  def display_xml(opt={})
+  def display_xml(options={})
 
+    opt = {unescape_html: false}.merge options
     load_records if @dirty_flag == true
     doc = rebuild_doc(:external)
     if opt[:unescape_html] == true then
