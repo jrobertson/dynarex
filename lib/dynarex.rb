@@ -254,9 +254,9 @@ EOF
   
 #Save the document to a local file.  
   
-  def save(filepath=nil)
+  def save(filepath=nil, options={})
 
-    opt = {pretty: true}
+    opt = {pretty: true}.merge options
     filepath ||= @local_filepath
     @local_filepath = filepath
     xml = display_xml(opt)
@@ -533,7 +533,11 @@ EOF
 
     load_records if @dirty_flag == true
     doc = rebuild_doc(:external)
-    doc.xml(opt) #jr230711 pretty: true
+    if opt[:unescape_html] == true then
+      doc.content(opt) #jr230711 pretty: true
+    else
+      doc.xml(opt) #jr230711 pretty: true      
+    end
   end
 
   def make_record(raw_params)
