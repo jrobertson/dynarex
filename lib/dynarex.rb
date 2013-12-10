@@ -386,7 +386,7 @@ EOF
 
           xml.send key, value.gsub('>','&gt;')\
             .gsub('<','&lt;')\
-            .gsub(/&\w+./) {|x| x[-1] == ';' ? x : x.sub('&','&amp;') }
+            .gsub(/&[^;]+./) {|x| x[-1] == ';' ? x : x.sub('&','&amp;') }
 
         end
       end
@@ -409,7 +409,7 @@ EOF
                 val = value.send(value.is_a?(String) ? :to_s : :to_yaml)                
                 xml.send(name, val.gsub('>','&gt;')\
                   .gsub('<','&lt;')\
-                  .gsub(/&\w+./) {|x| x[-1] == ';' ? x : x.sub('&','&amp;') }
+                  .gsub(/&[^;]+./) {|x| x[-1] == ';' ? x : x.sub('&','&amp;') }
 )
               end
             end
