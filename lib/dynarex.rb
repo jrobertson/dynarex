@@ -903,7 +903,7 @@ EOF
         
         if node then
           text = node.text.unescape
-          r.merge node.name.to_sym => (text[/^--- |^\[/] ? YAML.load(text) : text)
+          r.merge node.name.to_sym => (text[/^--- /] ? YAML.load(text) : text)
         else
           r
         end
