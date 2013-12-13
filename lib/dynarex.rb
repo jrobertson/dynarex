@@ -459,12 +459,13 @@ EOF
       item.delete
       
       xslif = Rexle.new("<xsl:if test='position() &lt; #{h[:limit]}'/>").root
-      e2.add xslif.root
+
       
       pubdate = Rexle.new("<pubDate><xsl:value-of select='pubDate'></xsl:value-of></pubDate>").root
       new_item.add pubdate      
       xslif.add new_item      
 
+      e2.add xslif.root
       xslt = doc.xml      
     end
     
@@ -475,15 +476,16 @@ EOF
       x.add Rexle::Element.new('pubDate').add_text dt.to_s 
     end
 
-    File.open('dynarex.xsl','w'){|f| f.write xslt}
-    File.open('dynarex.xml','w'){|f| f.write doc.xml}
-    xml = Rexslt.new(xslt, doc.xml).to_s
-=begin
+    #File.open('dynarex.xsl','w'){|f| f.write xslt}
+    #File.open('dynarex.xml','w'){|f| f.write doc.xml}
+    #xml = Rexslt.new(xslt, doc.xml).to_s
+#=begin
     xslt  = Nokogiri::XSLT(xslt)
     out = xslt.transform(Nokogiri::XML(doc.root.xml))
-=end
+#=end
 
-    Rexle.new("<rss version='2.0'>%s</rss>" % xml).xml(pretty: true)
+    #Rexle.new("<rss version='2.0'>%s</rss>" % xml).xml(pretty: true)
+    Rexle.new("<rss version='2.0'>%s</rss>" % out).xml(pretty: true)
   end
   
   def xpath(x)
