@@ -386,7 +386,7 @@ EOF
 
           xml.send key, value.gsub('>','&gt;')\
             .gsub('<','&lt;')\
-            .gsub(/&\w*./) {|x| x[-1] == ';' ? x : x.sub('&','&amp;')}
+            .gsub(/(&\s|&[a-zA-Z\.]+;?)/) {|x| x[-1] == ';' ? x : x.sub('&','&amp;')}
 
         end
       end
@@ -409,8 +409,10 @@ EOF
                 val = value.send(value.is_a?(String) ? :to_s : :to_yaml)                
                 xml.send(name, val.gsub('>','&gt;')\
                   .gsub('<','&lt;')\
-                  .gsub(/&\w*./) {|x| x[-1] == ';' ? x : x.sub('&','&amp;')}
-)
+                  .gsub(/(&\s|&[a-zA-Z\.]+;?)/) do |x| 
+                    x[-1] == ';' ? x : x.sub('&','&amp;')
+                  end
+                )
               end
             end
           end
@@ -769,7 +771,7 @@ EOF
   def dynarex_new(s)
     @schema = s
     ptrn = %r((\w+)\[?([^\]]+)?\]?\/(\w+)\(([^\)]+)\))
-    
+
     if s.match(ptrn) then
       @root_name, raw_summary, record_name, raw_fields = s.match(ptrn).captures 
       summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}  
@@ -802,8 +804,9 @@ EOF
   end
   
   def open(s)
-    
+
     if s[/</] then # xml
+
       buffer = s
     elsif s[/[\[\(]/] # schema
       dynarex_new(s)
@@ -815,6 +818,7 @@ EOF
     end
 
     @doc = Rexle.new(buffer) unless @doc
+
     @schema = @doc.root.text('summary/schema')
     @root_name = @doc.root.name
     @summary = summary_to_h
@@ -903,7 +907,8 @@ EOF
         
         if node then
           text = node.text.unescape
-          r.merge node.name.to_sym => (text[/^--- /] ? YAML.load(text) : text)
+
+          r.merge node.name.to_sym => (text[/^--- |^\[/] ? YAML.load(text) : text)
         else
           r
         end
