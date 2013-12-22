@@ -437,8 +437,12 @@ EOF
   end
 
   def to_xslt(opt={})    
+
     h = {limit: -1}.merge(opt)
-    xslt = DynarexXSLT.new(schema: @schema, xslt_schema: @xslt_schema).to_xslt    
+    xslt_schema = @xslt_schema || self.summary[:xslt_schema]
+    raise 'to_xsl(): xslt_schema nil' unless xslt_schema
+
+    xslt = DynarexXSLT.new(schema: @schema, xslt_schema: @xslt_schema ).to_xslt    
     return xslt
   end
   
