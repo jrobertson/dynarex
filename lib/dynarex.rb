@@ -21,7 +21,7 @@ require 'table-formatter'
 class Dynarex
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, 
-      :order, :type, :limit_by
+      :order, :type, :limit_by, :xslt
   
   
 #Create a new dynarex document from 1 of the following options:
@@ -424,6 +424,12 @@ EOF
     end
 
     doc = Rexle.new(a)
+
+    if @xslt then
+      doc.instructions = [['xml-stylesheet', 
+        "title='XSL_formatting' type='text/xsl' href='#{@xslt}'"]]
+    end
+
     return doc if state != :internal
     @doc = doc
   end
@@ -583,9 +589,14 @@ EOF
     buffer.gsub!(/.>/) {|x| x[0] != '?' ? x.sub(/>/,'&gt;') : x }
     buffer.gsub!(/<./) {|x| x[1] != '?' ? x.sub(/</,'&lt;') : x }
 
-    @raw_header = buffer.slice!(/<\?dynarex[^>]+>/)
+    @raw_header = buffer[/<\?dynarex[^>]+>/]
 
-    if @raw_header then
+    if buffer[/<\?/] then
+
+      raw_stylesheet = buffer.slice!(/<\?xml-stylesheet[^>]+>/)
+      @xslt = raw_stylesheet[/href=["']([^"']+)/,1] if raw_stylesheet
+      @raw_header = buffer.slice!(/<\?dynarex[^>]+>/)
+
       header = @raw_header[/<?dynarex (.*)?>/,1]
 
       r1 = /([\w\-]+\s*\=\s*'[^']*)'/
