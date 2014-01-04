@@ -54,7 +54,7 @@ class Dynarex
     @delimiter = separator
 
     if separator.length > 0 then 
-      @summary[:delimiter]
+      @summary[:delimiter] = separarator
     else
       @summary.delete :delimiter
     end
@@ -193,6 +193,7 @@ EOF
     if @raw_header then
       declaration = @raw_header
     else
+
       smry_fields = %i(schema)              
       smry_fields << :delimiter if self.delimiter.length > 0
       s = smry_fields.map {|x| "%s=\"%s\"" % [x, self.send(x)]}.join ' '
@@ -234,7 +235,7 @@ EOF
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
       xslt  = Nokogiri::XSLT(xsl_buffer)
       
-      out = xslt.transform(Nokogiri::XML(@doc.to_s))
+      out = xslt.transform(Nokogiri::XML(self.to_xml))
       header + "\n" + out.text
     end
                              
