@@ -54,7 +54,7 @@ class Dynarex
     @delimiter = separator
 
     if separator.length > 0 then 
-      @summary[:delimiter] = separarator
+      @summary[:delimiter] = separator
     else
       @summary.delete :delimiter
     end
