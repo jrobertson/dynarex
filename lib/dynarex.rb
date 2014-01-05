@@ -186,8 +186,8 @@ EOF
     
     if raw_summary_fields then
       summary_fields = raw_summary_fields.split(',') # .map(&:to_sym) 
-      sumry = "\n" + summary_fields.map {|x| x + ': ' + \
-                                         self.summary[x.to_sym]}.join("\n")
+      sumry = summary_fields.map {|x| x.strip!; x + ': ' + \
+                                     self.summary[x.to_sym]}.join("\n") + "\n"
     end
 
     if @raw_header then
@@ -195,11 +195,15 @@ EOF
     else
 
       smry_fields = %i(schema)              
-      smry_fields << :delimiter if self.delimiter.length > 0
-      s = smry_fields.map {|x| "%s=\"%s\"" % [x, self.send(x)]}.join ' '
+      if self.delimiter.length > 0 then
+        smry_fields << :delimiter 
+      else
+        smry_fields << :format_mask
+      end
+      s = smry_fields.map {|x| "%s=\"%s\"" % \
+        [x, self.send(x).gsub('"', '\"') ]}.join ' '
       #declaration = "<?dynarex %s ?>" % s
-      declaration = %Q(<?dynarex %s format_mask="%s"?>\n) % 
-        [s, self.format_mask.gsub('"', '\"')]
+      declaration = %Q(<?dynarex %s format_mask="%s"?>\n) % s
     end
 
     header = declaration + sumry
@@ -596,7 +600,7 @@ EOF
 
       raw_stylesheet = buffer.slice!(/<\?xml-stylesheet[^>]+>/)
       @xslt = raw_stylesheet[/href=["']([^"']+)/,1] if raw_stylesheet
-      @raw_header = buffer.slice!(/<\?dynarex[^>]+>/)
+      @raw_header = buffer.slice!(/<\?dynarex[^>]+>/) + "\n"
 
       header = @raw_header[/<?dynarex (.*)?>/,1]
 
@@ -634,7 +638,7 @@ EOF
           raw_lines.first[/#{a_summary.join('|')}:\s+\S+/] do
 
         label, val = raw_lines.shift.chomp.match(/(\w+):\s+([^$]+)$/).captures
-        @summary[label] = val
+        @summary[label.to_sym] = val
       end
     end
 
