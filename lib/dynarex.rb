@@ -203,7 +203,7 @@ EOF
       s = smry_fields.map {|x| "%s=\"%s\"" % \
         [x, self.send(x).gsub('"', '\"') ]}.join ' '
       #declaration = "<?dynarex %s ?>" % s
-      declaration = %Q(<?dynarex %s format_mask="%s"?>\n) % s
+      declaration = %Q(<?dynarex %s ?>\n) % s
     end
 
     header = declaration + sumry
