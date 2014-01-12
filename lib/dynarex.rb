@@ -35,7 +35,7 @@ class Dynarex
   def initialize(location=nil)
     #puts Rexle.version
     @delimiter = ''   
-    open(location) if location
+    openx(location) if location
     if @order == 'descending' then
       @records = records_to_h(:descending) 
       rebuild_doc
@@ -68,7 +68,7 @@ class Dynarex
     h = {xml: o[:xml], schema: @schema, foreign_schema: o[:schema]}
     buffer = DynarexImport.new(h).to_xml
 
-    open(buffer)
+    openx(buffer)
     self
   end
   
@@ -103,7 +103,7 @@ class Dynarex
   end
   
   def schema=(s)
-    open s
+    openx s
   end
   
   def type=(v)
@@ -203,7 +203,7 @@ EOF
       s = smry_fields.map {|x| "%s=\"%s\"" % \
         [x, self.send(x).gsub('"', '\"') ]}.join ' '
       #declaration = "<?dynarex %s ?>" % s
-      declaration = %Q(<?dynarex %s ?>\n) % s
+      declaration = %Q(<?dynarex %s?>\n) % s
     end
 
     header = declaration + sumry
@@ -756,7 +756,13 @@ EOF
     
     a = lines.map.with_index do |x,i| 
       created = Time.now.to_s
-      h = Hash[@fields.zip(x.map{|t| t.to_s[/^---/] ? YAML.load(t) : t})]
+      h = Hash[
+        @fields.zip(
+          x.map do |t| 
+            t.to_s[/^---/] ? YAML.load(t) : unescape(t)
+          end
+        )
+      ]
       h[@fields.last] = checked[i].to_s if @type == 'checklist'
       [h[@default_key], {id: '', created: created, last_modified: '', body: h}]
     end
@@ -788,6 +794,10 @@ EOF
     @flat_records = @flat_records.take @limit_by if @limit_by
     rebuild_doc
     self
+  end
+
+  def unescape(s)
+    s.gsub('&lt;', '<').gsub('&gt;','>')
   end
 
   def dynarex_new(s)
@@ -825,7 +835,7 @@ EOF
     create_find @fields
   end
   
-  def open(s)
+  def openx(s)
 
     if s[/</] then # xml
 
@@ -926,7 +936,7 @@ EOF
       body = @fields.inject({}) do |r,field|
         
         node = row.element field.to_s
-        
+
         if node then
           text = node.text.unescape
 
