@@ -590,7 +590,7 @@ EOF
   alias refresh_doc display_xml
 
   def string_parse(buffer)
-    
+
     buffer.gsub!(/.>/) {|x| x[0] != '?' ? x.sub(/>/,'&gt;') : x }
     buffer.gsub!(/<./) {|x| x[1] != '?' ? x.sub(/</,'&lt;') : x }
 
@@ -675,7 +675,7 @@ EOF
     @summary[:format_mask] = @format_mask
        
     raw_lines.shift while raw_lines.first.strip.empty?
-    
+
     lines = case raw_lines.first.chomp
       
       when '---'
@@ -753,12 +753,15 @@ EOF
 
       a2
     end
-    
+
     a = lines.map.with_index do |x,i| 
       created = Time.now.to_s
+
       h = Hash[
         @fields.zip(
-          x.map do |t| 
+          x.map do |t|
+
+            next unless t
             t.to_s[/^---/] ? YAML.load(t) : unescape(t)
           end
         )
@@ -792,6 +795,7 @@ EOF
     #load_records  
     @flat_records = @records.values.map{|x| x[:body]}
     @flat_records = @flat_records.take @limit_by if @limit_by
+
     rebuild_doc
     self
   end
