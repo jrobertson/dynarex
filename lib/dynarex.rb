@@ -761,8 +761,7 @@ EOF
         @fields.zip(
           x.map do |t|
 
-            next unless t
-            t.to_s[/^---/] ? YAML.load(t) : unescape(t)
+            t.to_s[/^---/] ? YAML.load(t) : unescape(t.to_s)
           end
         )
       ]
