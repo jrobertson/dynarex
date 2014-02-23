@@ -592,7 +592,9 @@ EOF
   def string_parse(buffer)
 
     buffer.gsub!("\r",'')
-    buffer.gsub!("---\n", "--- ")
+    buffer.gsub!(/\n-{4,}\n/,"\n\n")
+    buffer.gsub!(/---\n/m, "--- ")
+
     buffer.gsub!(/.>/) {|x| x[0] != '?' ? x.sub(/>/,'&gt;') : x }
     buffer.gsub!(/<./) {|x| x[1] != '?' ? x.sub(/</,'&lt;') : x }
 
@@ -704,7 +706,7 @@ EOF
         self.summary[:rawdoc_type] = 'rowx'
         raw_lines.shift
 
-        a3 = raw_lines.join.strip.gsub(/^\-+$/,'').split(/\n\n(?=\w+:)/)
+        a3 = raw_lines.join.strip.split(/\n\n(?=\w+:)/)
 
         # get the fields
         a4 = a3.map{|x| x.scan(/\w+(?=:)/)}.flatten(1).uniq
@@ -735,6 +737,7 @@ EOF
         a2
         
     else
+
     raw_lines = raw_lines.join("\n").gsub(/^\s*#[^\n]+/,'').lines.to_a        
       a2 = raw_lines.map.with_index do |x,i|
 
@@ -763,7 +766,7 @@ EOF
         @fields.zip(
           x.map do |t|
             
-            t.to_s[/^--- /] ? YAML.load(t[/^--- (.*)/,1]) : unescape(t.to_s)
+            t.to_s[/^---(?:\s|\n)/] ? YAML.load(t[/^---(?:\s|\n)(.*)/,1]) : unescape(t.to_s)
           end
         )
       ]
