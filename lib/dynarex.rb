@@ -591,6 +591,8 @@ EOF
 
   def string_parse(buffer)
 
+    buffer.gsub!("\r",'')
+    buffer.gsub!("---\n", "--- ")
     buffer.gsub!(/.>/) {|x| x[0] != '?' ? x.sub(/>/,'&gt;') : x }
     buffer.gsub!(/<./) {|x| x[1] != '?' ? x.sub(/</,'&lt;') : x }
 
@@ -761,7 +763,7 @@ EOF
         @fields.zip(
           x.map do |t|
             
-            t.to_s[/^---/] ? YAML.load(t) : unescape(t.to_s)
+            t.to_s[/^--- /] ? YAML.load(t[/^--- (.*)/,1]) : unescape(t.to_s)
           end
         )
       ]
@@ -943,7 +945,7 @@ EOF
         if node then
           text = node.text.unescape
 
-          r.merge node.name.to_sym => (text[/^---\Z/] ? YAML.load(text) : text)
+          r.merge node.name.to_sym => (text[/^---(?:\s|\n)/] ? YAML.load(text[/^---(?:\s|\n)(.*)/,1]) : text)
         else
           r
         end
