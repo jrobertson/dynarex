@@ -760,7 +760,7 @@ EOF
       h = Hash[
         @fields.zip(
           x.map do |t|
-
+            
             t.to_s[/^---/] ? YAML.load(t) : unescape(t.to_s)
           end
         )
@@ -943,7 +943,7 @@ EOF
         if node then
           text = node.text.unescape
 
-          r.merge node.name.to_sym => (text[/^--- |^\[/] ? YAML.load(text) : text)
+          r.merge node.name.to_sym => (text[/^---\Z/] ? YAML.load(text) : text)
         else
           r
         end
