@@ -49,6 +49,10 @@ class Dynarex
     self
   end
 
+  def all()
+    @doc.root.xpath("records/*").map {|x| recordx_to_record x}
+  end
+
   def delimiter=(separator)
 
     @delimiter = separator
