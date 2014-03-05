@@ -447,6 +447,8 @@ EOF
     recordx_to_record @doc.root.element("records/*[@id='#{id}']")
   end
   
+  alias find record
+  
   def record_exists?(id)
     !@doc.root.element("records/*[@id='#{id}']").nil?
   end
