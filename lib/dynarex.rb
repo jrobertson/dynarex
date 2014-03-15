@@ -350,7 +350,7 @@ EOF
   def delete(x)        
 
     if x.to_i.to_s == x.to_s and x[/[0-9]/] then
-      @doc.delete("records/*[@id='#{x}']")
+      @doc.root.delete("records/*[@id='#{x}']")
     else
       @doc.delete x
     end
