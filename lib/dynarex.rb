@@ -448,7 +448,7 @@ EOF
   end
   
   alias find record
-  
+
   def record_exists?(id)
     !@doc.root.element("records/*[@id='#{id}']").nil?
   end
@@ -516,9 +516,9 @@ EOF
   private
 
   def add_id(a)
-    @default_key = :id
-    @summary[:default_key] = 'id'
-    @fields << :id
+    @default_key = :uid
+    @summary[:default_key] = 'uid'
+    @fields << :uid
     a.each.with_index{|x,i| x << (i+1).to_s}    
   end
 
@@ -573,7 +573,7 @@ EOF
   def make_record(raw_params)
 
     id = (@doc.root.xpath('max(records/*/attribute::id)') || '0').succ unless id
-    raw_params.merge!(id: id) if @default_key == :id
+    raw_params.merge!(uid: id) if @default_key == :uid
     params = Hash[raw_params.keys.map(&:to_sym).zip(raw_params.values)]
 
     fields = capture_fields(params)    
