@@ -640,7 +640,7 @@ EOF
 
       a_summary = raw_summary.split(',').map(&:strip)
       
-      @summary = {}
+      @summary ||= {}
       raw_lines.shift while raw_lines.first.strip.empty?
 
       # fetch any summary lines
