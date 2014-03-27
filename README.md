@@ -17,7 +17,7 @@ Installing RDoc documentation for dynarex-0.1.0...
 
     require 'dynarex'
 
-    url = 'https://dl.dropbox.com/u/709640/scotruby2010-all.xml'
+    url = 'http://www.jamesrobertson.eu/dynarex/scotruby2010-all.xml'
     users = Dynarex.new(url).records
 
     # display the top 5 twitter users with the most followers
