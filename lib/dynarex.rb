@@ -258,6 +258,7 @@ EOF
   end
 
   def to_xml(opt={}) 
+    opt = {pretty: true} if opt == :pretty
     display_xml(opt)
   end
   
@@ -511,6 +512,12 @@ EOF
   
   def xpath(x)
     @doc.root.xpath x
+  end
+
+  def xslt=(value)
+    
+    self.summary.merge!({xslt: value})
+    @xslt = value
   end  
 
   private
@@ -650,6 +657,9 @@ EOF
         label, val = raw_lines.shift.chomp.match(/(\w+):\s+([^$]+)$/).captures
         @summary[label.to_sym] = val
       end
+
+      self.xslt = @summary[:xslt] || @summary[:xsl] if @summary[:xslt]\
+                                                             or @summary[:xsl]
     end
 
 
