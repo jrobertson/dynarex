@@ -962,7 +962,7 @@ EOF
         node = row.element field.to_s
 
         if node then
-          text = node.text.unescape
+          text = node.text ? node.text.unescape : ''
 
           r.merge node.name.to_sym => (text[/^---(?:\s|\n)/] ? YAML.load(text[/^---(?:\s|\n)(.*)/,1]) : text)
         else
