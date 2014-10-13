@@ -880,6 +880,9 @@ EOF
       buffer = File.open(s,'r').read
     end
 
+    raw_stylesheet = buffer.slice!(/<\?xml-stylesheet[^>]+>/)
+    @xslt = raw_stylesheet[/href=["']([^"']+)/,1] if raw_stylesheet
+    
     @doc = Rexle.new(buffer) unless @doc
 
     @schema = @doc.root.text('summary/schema')
