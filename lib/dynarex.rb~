@@ -744,10 +744,17 @@ EOF
           end
         end
 
+        a2.compact!        
+          
         # if there is no field value for the first field then 
         #   the default_key is invalid. The default_key is changed to an ID.
         if a2.detect {|x| x.first == ''} then
           add_id(a2)
+        else
+
+          a3 = a2.map(&:first)
+          add_id(a2) if a3 != a3.uniq 
+          
         end
         
         a2
