@@ -880,11 +880,13 @@ EOF
       buffer = File.open(s,'r').read
     end
 
-    raw_stylesheet = buffer.slice!(/<\?xml-stylesheet[^>]+>/)
-    @xslt = raw_stylesheet[/href=["']([^"']+)/,1] if raw_stylesheet
+    if buffer then
+      raw_stylesheet = buffer.slice!(/<\?xml-stylesheet[^>]+>/)
+      @xslt = raw_stylesheet[/href=["']([^"']+)/,1] if raw_stylesheet
+      
+      @doc = Rexle.new(buffer) unless @doc      
+    end
     
-    @doc = Rexle.new(buffer) unless @doc
-
     @schema = @doc.root.text('summary/schema')
     @root_name = @doc.root.name
     @summary = summary_to_h
