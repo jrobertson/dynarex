@@ -32,10 +32,10 @@ class Dynarex
 #* an XML string
 #    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
 
-  def initialize(location=nil)
+  def initialize(rawx=nil)
     #puts Rexle.version
     @delimiter = ''   
-    openx(location) if location
+    openx(rawx.clone) if rawx
     if @order == 'descending' then
       @records = records_to_h(:descending) 
       rebuild_doc
@@ -302,6 +302,7 @@ EOF
 
     #jr291012load_records
     @dirty_flag = true
+
     self
   end
 

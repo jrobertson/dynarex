@@ -628,7 +628,7 @@ EOF
       r = header.scan(/#{r1}|#{r2}/).map(&:compact).flatten      
       r.each do |x|
         attr, val = x.split(/\s*=\s*["']/,2)
-        self.method((attr + '=').to_sym).call(val)
+        self.method((attr + '=').to_sym).call(unescape val)
       end
 
     end
