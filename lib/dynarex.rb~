@@ -628,7 +628,7 @@ EOF
       r = header.scan(/#{r1}|#{r2}/).map(&:compact).flatten      
       r.each do |x|
         attr, val = x.split(/\s*=\s*["']/,2)
-        self.method((attr + '=').to_sym).call(val)
+        self.method((attr + '=').to_sym).call(unescape val)
       end
 
     end
@@ -726,19 +726,20 @@ EOF
         a3 = raw_lines.join.strip.split(/\n\n(?=\w+:)/)
 
         # get the fields
-        a4 = a3.map{|x| x.scan(/\w+(?=:)/)}.flatten(1).uniq
+        a4 = a3.map{|x| x.scan(/^\w+(?=:)/)}.flatten(1).uniq
+        #a4 = @fields
         a5 = a3.map do |xlines|
 
           missing_fields = a4 - xlines.scan(/^\w+(?=:)/)
           #r061013 r = xlines.lines.map(&:strip)
-          r = xlines.split(/\n(\w+:.*)/)
+          r = xlines.split(/\n(\w+:.*)/m)
           r += missing_fields.map{|x| x + ":"}
           r.sort.join("\n")
 
         end        
 
-        xml = RowX.new(a5.join("\n").strip).to_xml
-
+        xml = RowX.new(a5.join("\n").strip, level: 0).to_xml
+        puts 'xml : '  + xml.inspect
         a2 = Rexle.new(xml).root.xpath('item').inject([]) do |r,x|          
           r << @fields.map do |field| 
             x.text(a4.all? {|x| x.length > 1} ? field.to_s : field.to_s.chr) 
