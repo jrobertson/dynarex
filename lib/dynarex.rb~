@@ -727,23 +727,35 @@ EOF
 
         # get the fields
         a4 = a3.map{|x| x.scan(/^\w+(?=:)/)}.flatten(1).uniq
-        #a4 = @fields
+        
+        abbrv_fields = a4.all? {|x| x.length == 1}
+        
         a5 = a3.map do |xlines|
-
+        
           missing_fields = a4 - xlines.scan(/^\w+(?=:)/)
-          #r061013 r = xlines.lines.map(&:strip)
-          r = xlines.split(/\n(\w+:.*)/m)
-          r += missing_fields.map{|x| x + ":"}
-          r.sort.join("\n")
 
-        end        
+          r = xlines.split(/\n(\w+:.*)/m)
+          missing_fields.map!{|x| x + ":"}
+          key = (abbrv_fields ? @fields[0].to_s[0] : @fields.first.to_s) + ':'
+          
+          if missing_fields.include? key
+            r.unshift key
+            missing_fields.delete key
+          end
+          
+          r += missing_fields
+          r.join("\n")
+        
+        end
 
         xml = RowX.new(a5.join("\n").strip, level: 0).to_xml
-        puts 'xml : '  + xml.inspect
+
         a2 = Rexle.new(xml).root.xpath('item').inject([]) do |r,x|          
-          r << @fields.map do |field| 
-            x.text(a4.all? {|x| x.length > 1} ? field.to_s : field.to_s.chr) 
+
+          r << @fields.map do |field|
+            x.text(abbrv_fields ? field.to_s.chr : field.to_s )
           end
+          
         end
 
         a2.compact!        

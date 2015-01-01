@@ -18,6 +18,10 @@ require 'ostruct'
 require 'table-formatter'
 
 
+class DynarexException < Exception
+end
+
+
 class Dynarex
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, 
@@ -891,7 +895,8 @@ EOF
       buffer = Kernel.open(s, 'UserAgent' => 'Dynarex-Reader'){|x| x.read}
     else # local file
       @local_filepath = s
-      buffer = File.open(s,'r').read
+      raise DynarexException, 'file not found: ' + s
+      buffer = File.read s
     end
 
     if buffer then
