@@ -36,7 +36,9 @@ class Dynarex
 #* an XML string
 #    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
 
-  def initialize(rawx=nil)
+  def initialize(rawx=nil, opt={})
+    
+    @opt = {username: nil, password: nil}.merge opt
     #puts Rexle.version
     @delimiter = ''   
     openx(rawx.clone) if rawx
@@ -892,7 +894,8 @@ EOF
     elsif s[/[\[\(]/] # schema
       dynarex_new(s)
     elsif s[/^https?:\/\//] then  # url
-      buffer = Kernel.open(s, 'UserAgent' => 'Dynarex-Reader'){|x| x.read}
+      buffer = Kernel.open(s, 'UserAgent' => 'Dynarex-Reader',\
+          http_basic_authentication: [@opt[:username], @opt[:password]]).read
     else # local file
       @local_filepath = s
       raise DynarexException, 'file not found: ' + s unless File.exists? s

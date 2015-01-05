@@ -895,7 +895,7 @@ EOF
       buffer = Kernel.open(s, 'UserAgent' => 'Dynarex-Reader'){|x| x.read}
     else # local file
       @local_filepath = s
-      raise DynarexException, 'file not found: ' + s
+      raise DynarexException, 'file not found: ' + s unless File.exists? s
       buffer = File.read s
     end
 
