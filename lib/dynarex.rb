@@ -112,6 +112,10 @@ class Dynarex
     @order = value
   end
   
+  def recordx_type()
+    @summary[:recordx_type]
+  end
+  
   def schema=(s)
     openx s
   end
@@ -912,6 +916,22 @@ EOF
     @schema = @doc.root.text('summary/schema')
     @root_name = @doc.root.name
     @summary = summary_to_h
+    
+    summary_methods = (@summary.keys - self.public_methods)
+    
+    summary_methods.each do |x|
+      
+      instance_eval "
+      
+        def #{x.to_sym}()
+          @summary[:#{x}]
+        end
+      
+        def #{x.to_s}=(v)
+          @summary[:#{x}] = v
+        end
+        "      
+    end
 
     @order = @summary[:order] if @summary.has_key? :order
 
