@@ -403,7 +403,7 @@ EOF
 
       xml.summary do
 
-        @summary.each do |key,value| 
+        @summary.each do |key,value|
 
           xml.send key, value.gsub('>','&gt;')\
             .gsub('<','&lt;')\
@@ -478,12 +478,13 @@ EOF
   def to_rss(opt={}, xslt=nil)
     
     unless xslt then
-      
+
       h = {limit: 11}.merge(opt)
       doc = Rexle.new(self.to_xslt)
 
       e = doc.element('//xsl:apply-templates[2]')
-      doc2 = Rexle.new "<xsl:sort order='descending' data-type='number' select='@id'/>"
+      order = self.order || 'descending'
+      doc2 = Rexle.new "<xsl:sort order='#{order}' data-type='number' select='@id'/>"
       e.add doc2.root
       
       e2 = doc.root.element('xsl:template[3]')
@@ -494,8 +495,8 @@ EOF
       xslif = Rexle.new("<xsl:if test='position() &lt; #{h[:limit]}'/>").root
 
       
-      pubdate = Rexle.new("<pubDate><xsl:value-of select='pubDate'></xsl:value-of></pubDate>").root
-      new_item.add pubdate      
+      #pubdate = Rexle.new("<pubDate><xsl:value-of select='pubDate'></xsl:value-of></pubDate>").root
+      #new_item.add pubdate      
       xslif.add new_item      
 
       e2.add xslif.root
@@ -503,11 +504,11 @@ EOF
     end
     
     doc = self.to_doc
-    doc.root.xpath('records/*').each do |x|
-      raw_dt = DateTime.parse x.attributes[:created]
-      dt = raw_dt.strftime("%a, %d %b %Y %H:%M:%S %z")
-      x.add Rexle::Element.new('pubDate').add_text dt.to_s 
-    end
+    #doc.root.xpath('records/*').each do |x|
+    #  raw_dt = DateTime.parse x.attributes[:created]
+      #dt = raw_dt.strftime("%a, %d %b %Y %H:%M:%S %z")
+      #x.add Rexle::Element.new('pubDate').add_text dt.to_s 
+    #end
 
     #File.open('dynarex.xsl','w'){|f| f.write xslt}
     #File.open('dynarex.xml','w'){|f| f.write doc.xml}
@@ -929,6 +930,7 @@ EOF
       
         def #{x.to_s}=(v)
           @summary[:#{x}] = v
+          @doc.root.element('summary/#{x.to_s}').text = v
         end
         "      
     end

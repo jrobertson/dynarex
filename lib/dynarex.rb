@@ -492,11 +492,15 @@ EOF
       new_item = item.deep_clone
       item.delete
       
+      pubdate = @xslt_schema[/pubDate:/]
+      
       xslif = Rexle.new("<xsl:if test='position() &lt; #{h[:limit]}'/>").root
 
+      if pubdate.nil? then
+        pubdate = Rexle.new("<pubDate><xsl:value-of select='pubDate'></xsl:value-of></pubDate>").root
+        new_item.add pubdate      
+      end
       
-      #pubdate = Rexle.new("<pubDate><xsl:value-of select='pubDate'></xsl:value-of></pubDate>").root
-      #new_item.add pubdate      
       xslif.add new_item      
 
       e2.add xslif.root
@@ -504,11 +508,14 @@ EOF
     end
     
     doc = self.to_doc
-    #doc.root.xpath('records/*').each do |x|
-    #  raw_dt = DateTime.parse x.attributes[:created]
-      #dt = raw_dt.strftime("%a, %d %b %Y %H:%M:%S %z")
-      #x.add Rexle::Element.new('pubDate').add_text dt.to_s 
-    #end
+    
+    if pubdate.nil? then
+      doc.root.xpath('records/*').each do |x|
+        raw_dt = DateTime.parse x.attributes[:created]
+        dt = raw_dt.strftime("%a, %d %b %Y %H:%M:%S %z")
+        x.add Rexle::Element.new('pubDate').add_text dt.to_s 
+      end
+    end
 
     #File.open('dynarex.xsl','w'){|f| f.write xslt}
     #File.open('dynarex.xml','w'){|f| f.write doc.xml}
