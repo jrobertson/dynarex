@@ -16,6 +16,7 @@ require 'rowx'
 require 'nokogiri'
 require 'ostruct'
 require 'table-formatter'
+require 'rxfhelper'
 
 
 class DynarexException < Exception
@@ -39,14 +40,15 @@ class Dynarex
   def initialize(rawx=nil, opt={})
     
     @opt = {username: nil, password: nil}.merge opt
-    #puts Rexle.version
-    @delimiter = ''   
+    @delimiter = ''
+
     openx(rawx.clone) if rawx
+
     if @order == 'descending' then
       @records = records_to_h(:descending) 
       rebuild_doc
     end
-    #jr240913 @dirty_flag = false
+
   end
 
   def add(x)
@@ -192,9 +194,6 @@ xsl_buffer =<<EOF
 EOF
 
 
-    #format_mask = XPath.first(@doc.root, 'summary/format_mask/text()').to_s
-    #format_mask = @doc.root.element('summary/format_mask/text()')
-
     raw_summary_fields = self.summary[:schema][/^\w+\[([^\]]+)\]/,1]
     sumry = ''
     
@@ -281,14 +280,17 @@ EOF
     @local_filepath = filepath
     xml = display_xml(opt)
     buffer = block_given? ? yield(xml) : xml
-    File.open(filepath,'w'){|f| f.write buffer }
+    File.write filepath, buffer
   end
   
 #Parses 1 or more lines of text to create or update existing records.
 
   def parse(x=nil)
-    if x.is_a? String then
-      buffer = x.clone
+    
+    raw_buffer, type = RXFHelper.read(x)
+
+    if raw_buffer.is_a? String then
+      buffer = raw_buffer.clone
       buffer = yield if block_given?          
       string_parse buffer
     else
@@ -305,12 +307,10 @@ EOF
 
   def create(arg, id=nil)
     raise 'Dynarex#create(): input error: no arg provided' unless arg
-    #jr291012 rebuild_doc()
-    #jr291012 (load_records; rebuild_doc) if @dirty_flag == true
+
     methods = {Hash: :hash_create, String: :create_from_line}
     send (methods[arg.class.to_s.to_sym]), arg, id
 
-    #jr291012load_records
     @dirty_flag = true
 
     self
@@ -405,9 +405,11 @@ EOF
 
         @summary.each do |key,value|
 
-          xml.send key, value.gsub('>','&gt;')\
+          v = value.gsub('>','&gt;')\
             .gsub('<','&lt;')\
             .gsub(/(&\s|&[a-zA-Z\.]+;?)/) {|x| x[-1] == ';' ? x : x.sub('&','&amp;')}
+
+          xml.send key, v
 
         end
       end
@@ -421,11 +423,11 @@ EOF
         xml.records do
            
           records.each do |k, item|
-            #p 'foo ' + item.inspect
+
             xml.send(@record_name, {id: item[:id], created: item[:created], \
                 last_modified:  item[:last_modified]}, '') do
               item[:body].each do |name,value| 
-                #name = name.to_s.prepend('._').to_sym if reserved_keywords.include? name
+
                 name = ('._' + name.to_s).to_sym if reserved_keywords.include? name
                 val = value.send(value.is_a?(String) ? :to_s : :to_yaml)                
                 xml.send(name, val.gsub('>','&gt;')\
@@ -445,7 +447,7 @@ EOF
     end
 
     doc = Rexle.new(a)
-
+    
     if @xslt then
       doc.instructions = [['xml-stylesheet', 
         "title='XSL_formatting' type='text/xsl' href='#{@xslt}'"]]
@@ -645,6 +647,7 @@ EOF
 
       r = header.scan(/#{r1}|#{r2}/).map(&:compact).flatten      
       r.each do |x|
+
         attr, val = x.split(/\s*=\s*["']/,2)
         self.method((attr + '=').to_sym).call(unescape val)
       end
@@ -655,11 +658,7 @@ EOF
     i = @doc.root.xpath('max(records/*/attribute::id)').to_i
     
     raw_summary = schema[/\[([^\]]+)/,1]
-    #rowx = buffer[/--\+.*/m]
 
-    #buffer = rowx if rowx
-    
-    #jr061013 raw_lines = buffer.gsub(/^\s*#[^\n]+/,'').lines.to_a
     raw_lines = buffer.lines.to_a
 
     if raw_summary then
@@ -716,7 +715,7 @@ EOF
     raw_lines.shift while raw_lines.first.strip.empty?
 
     lines = case raw_lines.first.chomp
-      
+
       when '---'
 
         yaml = YAML.load raw_lines.join("\n")
@@ -815,6 +814,7 @@ EOF
     end
 
     a = lines.map.with_index do |x,i| 
+      
       created = Time.now.to_s
 
       h = Hash[
@@ -830,7 +830,7 @@ EOF
     end
 
     h2 = Hash[a]
-    
+
     #replace the existing records hash
     h = @records
     i = 0
@@ -850,8 +850,7 @@ EOF
     end    
 
     h.each {|key, item| h.delete(key) if not h2.has_key? key}
-    #refresh_doc
-    #load_records  
+
     @flat_records = @records.values.map{|x| x[:body]}
     @flat_records = @flat_records.take @limit_by if @limit_by
 
@@ -889,7 +888,6 @@ EOF
     @summary.merge!({recordx_type: 'dynarex', format_mask: format_mask, schema: s})
     @records = {}
     @flat_records = {}
-    
     rebuild_doc
 
   end
@@ -903,9 +901,13 @@ EOF
     if s[/</] then # xml
 
       buffer = s
+              
     elsif s[/[\[\(]/] # schema
+
       dynarex_new(s)
+              
     elsif s[/^https?:\/\//] then  # url
+
       buffer = Kernel.open(s, 'UserAgent' => 'Dynarex-Reader',\
           http_basic_authentication: [@opt[:username], @opt[:password]]).read
     else # local file
@@ -915,16 +917,18 @@ EOF
     end
 
     if buffer then
+
       raw_stylesheet = buffer.slice!(/<\?xml-stylesheet[^>]+>/)
       @xslt = raw_stylesheet[/href=["']([^"']+)/,1] if raw_stylesheet
       
       @doc = Rexle.new(buffer) unless @doc      
     end
-    
-    @schema = @doc.root.text('summary/schema')
+
+    e = @doc.root.element('summary')
+    @schema = e.text('schema')
     @root_name = @doc.root.name
     @summary = summary_to_h
-    
+
     summary_methods = (@summary.keys - self.public_methods)
     
     summary_methods.each do |x|
@@ -944,11 +948,12 @@ EOF
 
     @order = @summary[:order] if @summary.has_key? :order
 
-    @default_key = @doc.root.element('summary/default_key/text()') 
-    @format_mask = @doc.root.element('summary/format_mask/text()')
-   
+
+    @default_key = e.text('default_key')
+    @format_mask = e.text('format_mask')
+
     @fields = @schema[/([^(]+)\)$/,1].split(/\s*,\s*/).map(&:to_sym)
- 
+
     @fields << @default_key if @default_key and \
                         !@fields.include? @default_key.to_sym
 
@@ -1002,7 +1007,6 @@ EOF
   def records_to_h(state=:ascending)
 
     i = @doc.root.xpath('max(records/*/attribute::id)') || 0
-    #jr090813 fields = @doc.root.text('summary/schema')[/\(.*\)/].scan(/\w+/)
     records = @doc.root.xpath('records/*')
 
     recs = (state == :descending ? records.reverse : records)
