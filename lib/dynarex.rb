@@ -470,21 +470,22 @@ EOF
   def to_xslt(opt={})    
 
     h = {limit: -1}.merge(opt)
-    xslt_schema = @xslt_schema || self.summary[:xslt_schema]
-    raise 'to_xsl(): xslt_schema nil' unless xslt_schema
+    @xslt_schema = @xslt_schema || self.summary[:xslt_schema]
+    raise 'to_xsl(): xslt_schema nil' unless @xslt_schema
 
-    xslt = DynarexXSLT.new(schema: @schema, xslt_schema: @xslt_schema ).to_xslt    
+    xslt = DynarexXSLT.new(schema: @schema, xslt_schema: @xslt_schema ).to_xslt
+
     return xslt
   end
   
   def to_rss(opt={}, xslt=nil)
     
     unless xslt then
-
+            
       h = {limit: 11}.merge(opt)
       doc = Rexle.new(self.to_xslt)
-
       e = doc.element('//xsl:apply-templates[2]')
+
       order = self.order || 'descending'
       doc2 = Rexle.new "<xsl:sort order='#{order}' data-type='number' select='@id'/>"
       e.add doc2.root
@@ -495,22 +496,22 @@ EOF
       item.delete
       
       pubdate = @xslt_schema[/pubDate:/]
-      
       xslif = Rexle.new("<xsl:if test='position() &lt; #{h[:limit]}'/>").root
 
       if pubdate.nil? then
         pubdate = Rexle.new("<pubDate><xsl:value-of select='pubDate'></xsl:value-of></pubDate>").root
         new_item.add pubdate      
       end
-      
-      xslif.add new_item      
 
+      xslif.add new_item      
       e2.add xslif.root
       xslt = doc.xml      
+
+      xslt
     end
     
     doc = self.to_doc
-    
+
     if pubdate.nil? then
       doc.root.xpath('records/*').each do |x|
         raw_dt = DateTime.parse x.attributes[:created]
@@ -524,11 +525,14 @@ EOF
     #xml = Rexslt.new(xslt, doc.xml).to_s
 #=begin
     xslt  = Nokogiri::XSLT(xslt)
-    out = xslt.transform(Nokogiri::XML(doc.root.xml))
+    out = xslt.transform(Nokogiri::XML(doc.root.xml)).to_xml \
+                 :save_with => Nokogiri::XML::Node::SaveOptions::NO_DECLARATION
 #=end
 
     #Rexle.new("<rss version='2.0'>%s</rss>" % xml).xml(pretty: true)
-    Rexle.new("<rss version='2.0'>%s</rss>" % out).xml(pretty: true)
+
+    xml = Rexle.new("<rss version='2.0'>%s</rss>" % out.to_s).xml(pretty: true)
+    xml
   end
   
   def xpath(x)
