@@ -4,8 +4,8 @@
 
 require 'open-uri'
 require 'dynarex-import'
-require 'line-tree'
-require 'rexle'
+#require 'line-tree'
+#require 'rexle'
 require 'rexle-builder'
 require 'rexslt'
 require 'dynarex-xslt'
@@ -39,6 +39,7 @@ class Dynarex
 
   def initialize(rawx=nil, opt={})
     
+    #@log = Logger.new('/home/james/mm.log')
     @opt = {username: nil, password: nil}.merge opt
     @delimiter = ''
 
@@ -286,12 +287,14 @@ EOF
 #Parses 1 or more lines of text to create or update existing records.
 
   def parse(x=nil)
-    
+    #log = Logger.new('/home/james/mm.log')
+    #log.debug('dynarex: inside parse()')
     raw_buffer, type = RXFHelper.read(x)
 
     if raw_buffer.is_a? String then
       buffer = raw_buffer.clone
       buffer = yield if block_given?          
+      #log.debug('dynarex: before string_parse()')
       string_parse buffer
     else
       foreign_import x
@@ -446,13 +449,17 @@ EOF
       end # end of if @records
     end
 
+    #@log.debug('dynarex: a = ' + a.inspect)
     doc = Rexle.new(a)
     
+    #@log.debug('dynarex: doc.inspect : ' + doc.inspect)
+    #@log.debug('dynarex: doc ' + doc.xml[0..149].inspect)
     if @xslt then
       doc.instructions = [['xml-stylesheet', 
         "title='XSL_formatting' type='text/xsl' href='#{@xslt}'"]]
     end
 
+    #log.debug('dynarex: state: ' + state.inspect)
     return doc if state != :internal
     @doc = doc
   end
@@ -628,7 +635,7 @@ EOF
   alias refresh_doc display_xml
 
   def string_parse(buffer)
-
+    #@log.debug '+string_parse'
     buffer.gsub!("\r",'')
     buffer.gsub!(/\n-{4,}\n/,"\n\n")
     buffer.gsub!(/---\n/m, "--- ")
@@ -637,30 +644,37 @@ EOF
     buffer.gsub!(/<./) {|x| x[1] != '?' ? x.sub(/</,'&lt;') : x }
 
     @raw_header = buffer[/<\?dynarex[^>]+>/]
-
+    #log = Logger.new('/home/james/mm.log')
+    #log.debug('dynarex: before if buffer()')
+    #@log.debug 'before buffer match'
+    
     if buffer[/<\?/] then
-
+      #@log.debug 'inside buffer'
       raw_stylesheet = buffer.slice!(/<\?xml-stylesheet[^>]+>/)
       @xslt = raw_stylesheet[/href=["']([^"']+)/,1] if raw_stylesheet
       @raw_header = buffer.slice!(/<\?dynarex[^>]+>/) + "\n"
-
+      
+      #@log.debug 'before header'
       header = @raw_header[/<?dynarex (.*)?>/,1]
 
       r1 = /([\w\-]+\s*\=\s*'[^']*)'/
       r2 = /([\w\-]+\s*\=\s*"[^"]*)"/
 
       r = header.scan(/#{r1}|#{r2}/).map(&:compact).flatten      
+      #@log.debug 'before each'
       r.each do |x|
 
         attr, val = x.split(/\s*=\s*["']/,2)
+        #@log.debug('dynarex: attr' + attr.inspect)
         self.method((attr + '=').to_sym).call(unescape val)
       end
 
     end
-
+#log = Logger.new('/home/james/mm.log')
+    #@log.debug('dynarex: before root()')
     # if records already exist find the max id
     i = @doc.root.xpath('max(records/*/attribute::id)').to_i
-    
+    #log.debug('dyanrex: after root()')
     raw_summary = schema[/\[([^\]]+)/,1]
 
     raw_lines = buffer.lines.to_a
@@ -741,62 +755,18 @@ EOF
         
       when '--+'
 
-        self.summary[:rawdoc_type] = 'rowx'
+        rowx(raw_lines)
+        
+      when '--#'
+
+        self.summary[:rawdoc_type] = 'sectionx'
         raw_lines.shift
 
-        a3 = raw_lines.join.strip.split(/\n\n(?=\w+:)/)
-
-        # get the fields
-        a4 = a3.map{|x| x.scan(/^\w+(?=:)/)}.flatten(1).uniq
-        
-        abbrv_fields = a4.all? {|x| x.length == 1}
-        
-        a5 = a3.map do |xlines|
-        
-          missing_fields = a4 - xlines.scan(/^\w+(?=:)/)
-
-          r = xlines.split(/\n(\w+:.*)/m)
-          missing_fields.map!{|x| x + ":"}
-          key = (abbrv_fields ? @fields[0].to_s[0] : @fields.first.to_s) + ':'
-          
-          if missing_fields.include? key
-            r.unshift key
-            missing_fields.delete key
-          end
-          
-          r += missing_fields
-          r.join("\n")
-        
-        end
-
-        xml = RowX.new(a5.join("\n").strip, level: 0).to_xml
-
-        a2 = Rexle.new(xml).root.xpath('item').inject([]) do |r,x|          
-
-          r << @fields.map do |field|
-            x.text(abbrv_fields ? field.to_s.chr : field.to_s )
-          end
-          
-        end
-
-        a2.compact!        
-          
-        # if there is no field value for the first field then 
-        #   the default_key is invalid. The default_key is changed to an ID.
-        if a2.detect {|x| x.first == ''} then
-          add_id(a2)
-        else
-
-          a3 = a2.map(&:first)
-          add_id(a2) if a3 != a3.uniq 
-          
-        end
-        
-        a2
+        raw_lines.join("\n").split(/(?=^#[^#])/).map {|x| [x.rstrip]}
         
     else
 
-    raw_lines = raw_lines.join("\n").gsub(/^\s*#[^\n]+/,'').lines.to_a        
+      raw_lines = raw_lines.join("\n").gsub(/^\s*#[^\n]+/,'').lines.to_a        
       a2 = raw_lines.map.with_index do |x,i|
 
         next if x[/^\s+$|\n\s*#/]
@@ -869,7 +839,7 @@ EOF
   def dynarex_new(s)
     @schema = s
     ptrn = %r((\w+)\[?([^\]]+)?\]?\/(\w+)\(([^\)]+)\))
-
+    #@log.debug 'inside dynarex_new'
     if s.match(ptrn) then
       @root_name, raw_summary, record_name, raw_fields = s.match(ptrn).captures 
       summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}  
@@ -886,12 +856,13 @@ EOF
     end
 
     format_mask = fields ? fields.map {|x| "[!%s]" % x}.join(' ') : ''
-
+    #@log.debug 'dynarex_new: before @summary'
     @summary = Hash[summary.zip([''] * summary.length).flatten.each_slice(2)\
                     .map{|x1,x2| [x1.to_sym,x2]}]
     @summary.merge!({recordx_type: 'dynarex', format_mask: format_mask, schema: s})
     @records = {}
     @flat_records = {}
+    #@log.debug 'dynarex_new: before rebuild_doc'
     rebuild_doc
 
   end
@@ -901,13 +872,13 @@ EOF
   end
   
   def openx(s)
-
+    #@log.debug 'inside openx'
     if s[/</] then # xml
 
       buffer = s
               
     elsif s[/[\[\(]/] # schema
-
+      #@log.debug 'before dynarex_new'
       dynarex_new(s)
               
     elsif s[/^https?:\/\//] then  # url
@@ -919,7 +890,7 @@ EOF
       raise DynarexException, 'file not found: ' + s unless File.exists? s
       buffer = File.read s
     end
-
+    #@log.debug 'openx: before buffer'
     if buffer then
 
       raw_stylesheet = buffer.slice!(/<\?xml-stylesheet[^>]+>/)
@@ -927,8 +898,11 @@ EOF
       
       @doc = Rexle.new(buffer) unless @doc      
     end
-
+    
+    #@log.debug('dynarex: before lement summary')
+    return if @doc.root.nil?
     e = @doc.root.element('summary')
+    #@log.debug('dynarex: \after element summary')
     @schema = e.text('schema')
     @root_name = @doc.root.name
     @summary = summary_to_h
@@ -1043,6 +1017,63 @@ EOF
 
       result.merge body[@default_key.to_sym] => {id: id, created: created, last_modified: last_modified, body: body}
     end    
+
+  end
+
+  def rowx(raw_lines)
+
+    self.summary[:rawdoc_type] = 'rowx'
+    raw_lines.shift
+
+    a3 = raw_lines.join.strip.split(/\n\n(?=\w+:)/)
+
+    # get the fields
+    a4 = a3.map{|x| x.scan(/^\w+(?=:)/)}.flatten(1).uniq
+    
+    abbrv_fields = a4.all? {|x| x.length == 1}
+    
+    a5 = a3.map do |xlines|
+    
+      missing_fields = a4 - xlines.scan(/^\w+(?=:)/)
+
+      r = xlines.split(/\n(\w+:.*)/m)
+      missing_fields.map!{|x| x + ":"}
+      key = (abbrv_fields ? @fields[0].to_s[0] : @fields.first.to_s) + ':'
+      
+      if missing_fields.include? key
+        r.unshift key
+        missing_fields.delete key
+      end
+      
+      r += missing_fields
+      r.join("\n")
+    
+    end
+
+    xml = RowX.new(a5.join("\n").strip, level: 0).to_xml
+    
+    a2 = Rexle.new(xml).root.xpath('item').inject([]) do |r,x|          
+
+      r << @fields.map do |field|
+        x.text(abbrv_fields ? field.to_s.chr : field.to_s )
+      end
+      
+    end
+
+    a2.compact!        
+      
+    # if there is no field value for the first field then 
+    #   the default_key is invalid. The default_key is changed to an ID.
+    if a2.detect {|x| x.first == ''} then
+      add_id(a2)
+    else
+
+      a3 = a2.map(&:first)
+      add_id(a2) if a3 != a3.uniq 
+      
+    end
+    
+    a2
 
   end
 
