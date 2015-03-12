@@ -625,7 +625,7 @@ EOF
   def make_record(raw_params)
 
     id = (@doc.root.xpath('max(records/*/attribute::id)') || '0').succ unless id
-    raw_params.merge!(uid: id) if @default_key == :uid
+    raw_params.merge!(uid: id) if @default_key.to_sym == :uid
     params = Hash[raw_params.keys.map(&:to_sym).zip(raw_params.values)]
 
     fields = capture_fields(params)    
