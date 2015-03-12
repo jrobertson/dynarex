@@ -4,7 +4,7 @@
 
 require 'open-uri'
 require 'dynarex-import'
-require 'line-tree'
+#require 'line-tree'
 #require 'rexle'
 require 'rexle-builder'
 require 'rexslt'
@@ -236,7 +236,20 @@ EOF
       out = xslt.transform(Nokogiri::XML(@doc.to_s))
       
       header + "\n--+\n" + out.text
+    elsif self.summary[:rawdoc_type] == 'sectionx' then  
+      a = self.fields.map do |field|
+  "<xsl:if test=\"%s != ''\">
+<xsl:text>\n</xsl:text><xsl:value-of select='%s'/>
+  </xsl:if>" % ([field]*2)
+      end
+
+      xslt_format = a.join      
+
+      xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
+      xslt  = Nokogiri::XSLT(xsl_buffer)
+      out = xslt.transform(Nokogiri::XML(@doc.to_s))
       
+      header + "--#\n" + out.text
     elsif self.delimiter.length > 0 then
 
       tfo = TableFormatter.new border: false, nowrap: true, divider: self.delimiter
@@ -762,7 +775,7 @@ EOF
         self.summary[:rawdoc_type] = 'sectionx'
         raw_lines.shift
 
-        raw_lines.join("\n").split(/(?=^#[^#])/).map {|x| [x.rstrip]}
+        raw_lines.join.lstrip.split(/(?=^#[^#])/).map {|x| [x.rstrip]}
         
     else
 
@@ -929,7 +942,7 @@ EOF
 
     @default_key = e.text('default_key')
     @format_mask = e.text('format_mask')
-
+    
     @fields = @schema[/([^(]+)\)$/,1].split(/\s*,\s*/).map(&:to_sym)
 
     @fields << @default_key if @default_key and \
