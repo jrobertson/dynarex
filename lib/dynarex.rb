@@ -61,6 +61,10 @@ class Dynarex
   def all()
     @doc.root.xpath("records/*").map {|x| recordx_to_record x}
   end
+  
+  def clone()
+    Dynarex.new(self.to_xml)
+  end
 
   def delimiter=(separator)
 
@@ -237,7 +241,8 @@ EOF
       
       header + "\n--+\n" + out.text
     elsif self.summary[:rawdoc_type] == 'sectionx' then  
-      a = self.fields.map do |field|
+      
+      a = (self.fields - [:uid, 'uid']).map do |field|
   "<xsl:if test=\"%s != ''\">
 <xsl:text>\n</xsl:text><xsl:value-of select='%s'/>
   </xsl:if>" % ([field]*2)
@@ -246,6 +251,7 @@ EOF
       xslt_format = a.join      
 
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
+      File.write '/tmp/liveblog.xsl', xsl_buffer
       xslt  = Nokogiri::XSLT(xsl_buffer)
       out = xslt.transform(Nokogiri::XML(@doc.to_s))
       
@@ -895,9 +901,7 @@ EOF
       dynarex_new(s)
               
     elsif s[/^https?:\/\//] then  # url
-
-      buffer = Kernel.open(s, 'UserAgent' => 'Dynarex-Reader',\
-          http_basic_authentication: [@opt[:username], @opt[:password]]).read
+      buffer, _ = RXFHelper.read s, {username: @opt[:username], password: @opt[:password]}
     else # local file
       @local_filepath = s
       raise DynarexException, 'file not found: ' + s unless File.exists? s

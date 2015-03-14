@@ -237,7 +237,8 @@ EOF
       
       header + "\n--+\n" + out.text
     elsif self.summary[:rawdoc_type] == 'sectionx' then  
-      a = self.fields.map do |field|
+      
+      a = (self.fields - [:uid, 'uid']).map do |field|
   "<xsl:if test=\"%s != ''\">
 <xsl:text>\n</xsl:text><xsl:value-of select='%s'/>
   </xsl:if>" % ([field]*2)
@@ -246,6 +247,7 @@ EOF
       xslt_format = a.join      
 
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
+      File.write '/tmp/liveblog.xsl', xsl_buffer
       xslt  = Nokogiri::XSLT(xsl_buffer)
       out = xslt.transform(Nokogiri::XML(@doc.to_s))
       
@@ -625,7 +627,7 @@ EOF
   def make_record(raw_params)
 
     id = (@doc.root.xpath('max(records/*/attribute::id)') || '0').succ unless id
-    raw_params.merge!(uid: id) if @default_key == :uid
+    raw_params.merge!(uid: id) if @default_key.to_sym == :uid
     params = Hash[raw_params.keys.map(&:to_sym).zip(raw_params.values)]
 
     fields = capture_fields(params)    
@@ -895,9 +897,7 @@ EOF
       dynarex_new(s)
               
     elsif s[/^https?:\/\//] then  # url
-
-      buffer = Kernel.open(s, 'UserAgent' => 'Dynarex-Reader',\
-          http_basic_authentication: [@opt[:username], @opt[:password]]).read
+      buffer, _ = RXFHelper.read s, {username: @opt[:username], password: @opt[:password]}
     else # local file
       @local_filepath = s
       raise DynarexException, 'file not found: ' + s unless File.exists? s
