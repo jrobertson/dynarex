@@ -251,7 +251,7 @@ EOF
       xslt_format = a.join      
 
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
-      File.write '/tmp/liveblog.xsl', xsl_buffer
+      
       xslt  = Nokogiri::XSLT(xsl_buffer)
       out = xslt.transform(Nokogiri::XML(@doc.to_s))
       
