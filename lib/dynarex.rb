@@ -42,13 +42,15 @@ class Dynarex
     #@log = Logger.new('/home/james/mm.log')
     @opt = {username: nil, password: nil}.merge opt
     @delimiter = ''
+    @order = 'ascending'
 
     openx(rawx.clone) if rawx
-
+=begin 160315
     if @order == 'descending' then
       @records = records_to_h(:descending) 
       rebuild_doc
     end
+=end    
 
   end
 
@@ -111,11 +113,13 @@ class Dynarex
   def order=(value)
     
     self.summary.merge!({order: value})    
+=begin    jr 160315
     if @order == 'ascending' and value == 'descending' then
       sort_records
     elsif @order == 'descending' and value == 'ascending'
       sort_records
     end    
+=end    
     @order = value
   end
   
@@ -440,7 +444,7 @@ EOF
 
       if records then
 
-        records.reverse! if @order == 'descending' and state == :external
+        #jr160315records.reverse! if @order == 'descending' and state == :external
 
         xml.records do
            
@@ -606,7 +610,8 @@ EOF
   def hash_create(raw_params={}, id=nil)
 
     record = make_record(raw_params)
-    @doc.root.element('records').add record            
+    method_name = @order == 'ascending' ? :add : :prepend
+    @doc.root.element('records').method(method_name).call record
 
   end
 
@@ -1004,7 +1009,7 @@ EOF
     i = @doc.root.xpath('max(records/*/attribute::id)') || 0
     records = @doc.root.xpath('records/*')
 
-    recs = (state == :descending ? records.reverse : records)
+    recs = records #jr160315 (state == :descending ? records.reverse : records)
     a = recs.inject({}) do |result,row|
 
       created = Time.now.to_s

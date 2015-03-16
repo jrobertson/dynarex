@@ -969,7 +969,7 @@ EOF
     end
     
     @summary[:default_key] = @default_key.to_s
-
+    
     if @doc.root.xpath('records/*').length > 0 then
       @record_name = @doc.root.element('records/*[1]').name            
       #jr240913 load_records
@@ -1019,7 +1019,7 @@ EOF
       created = row.attributes[:created] if row.attributes[:created]
       last_modified = row.attributes[:last_modified] if row.attributes[:last_modified]
 
-      body = @fields.inject({}) do |r,field|
+      body = (@fields - ['uid']).inject({}) do |r,field|
         
         node = row.element field.to_s
 
@@ -1030,7 +1030,9 @@ EOF
         else
           r
         end
-      end      
+      end
+      
+      body[:uid] = id if @default_key == 'uid'
 
       result.merge body[@default_key.to_sym] => {id: id, created: created, last_modified: last_modified, body: body}
     end    
