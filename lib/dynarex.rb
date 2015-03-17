@@ -722,7 +722,7 @@ EOF
                                                              or @summary[:xsl]
     end
 
-
+=begin 170315
     if @type == 'checklist' then
       
       # extract the brackets from the line
@@ -735,7 +735,8 @@ EOF
       end
 
     end
-    
+
+
     if @order == 'descending' then
       rl = raw_lines
 
@@ -749,7 +750,7 @@ EOF
       checked.reverse! if @type == 'checklist'
       
     end    
-
+=end
     @summary[:recordx_type] = 'dynarex'
     @summary[:schema] = @schema
     @summary[:format_mask] = @format_mask
