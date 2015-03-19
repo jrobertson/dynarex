@@ -950,7 +950,7 @@ EOF
     @order = @summary[:order] if @summary.has_key? :order
 
 
-    @default_key = e.text('default_key')
+    @default_key ||= e.text('default_key')
     @format_mask = e.text('format_mask')
     
     @fields = @schema[/([^(]+)\)$/,1].split(/\s*,\s*/).map(&:to_sym)
