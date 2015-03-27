@@ -216,7 +216,7 @@ EOF
       declaration = @raw_header
     else
 
-      smry_fields = %i(schema)              
+      smry_fields = %i(schema order)              
       if self.delimiter.length > 0 then
         smry_fields << :delimiter 
       else
@@ -224,7 +224,7 @@ EOF
       end
       s = smry_fields.map {|x| "%s=\"%s\"" % \
         [x, self.send(x).gsub('"', '\"') ]}.join ' '
-      #declaration = "<?dynarex %s ?>" % s
+
       declaration = %Q(<?dynarex %s?>\n) % s
     end
 
