@@ -216,7 +216,9 @@ EOF
       declaration = @raw_header
     else
 
-      smry_fields = %i(schema order)              
+      smry_fields = %i(schema)              
+      smry_fields << :order if self.summary[:order] == 'descending'
+      
       if self.delimiter.length > 0 then
         smry_fields << :delimiter 
       else
