@@ -542,7 +542,7 @@ EOF
       xslt
     end
     
-    doc = self.to_doc
+    doc = Rexle.new(self.to_xml)
 
     if pubdate.nil? then
       doc.root.xpath('records/*').each do |x|
