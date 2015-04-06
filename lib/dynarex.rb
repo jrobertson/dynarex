@@ -38,8 +38,7 @@ class Dynarex
 #    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
 
   def initialize(rawx=nil, opt={})
-    
-    #@log = Logger.new('/home/james/mm.log')
+       
     @opt = {username: nil, password: nil}.merge opt
     @delimiter = ''
     @order = 'ascending'
@@ -912,8 +911,14 @@ EOF
       buffer, _ = RXFHelper.read s, {username: @opt[:username], password: @opt[:password]}
     else # local file
       @local_filepath = s
-      raise DynarexException, 'file not found: ' + s unless File.exists? s
-      buffer = File.read s
+      
+      if File.exists? s then 
+        buffer = File.read s
+      elsif @opt[:schema]
+        dynarex_new @opt[:schema]
+      else
+        raise DynarexException, 'file not found: ' + s
+      end
     end
     #@log.debug 'openx: before buffer'
     if buffer then
