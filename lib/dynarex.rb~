@@ -38,7 +38,7 @@ class Dynarex
 #    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
 
   def initialize(rawx=nil, opt={})
-       
+    
     @opt = {username: nil, password: nil}.merge opt
     @delimiter = ''
     @order = 'ascending'
@@ -605,7 +605,10 @@ EOF
   end
 
   def recordx_to_record(recordx)
-    RecordX.new(Hash[*@fields.zip(recordx.xpath("*/text()")).flatten], self, recordx.attributes[:id])
+    
+    h = recordx.attributes
+    RecordX.new(Hash[*@fields.zip(recordx.xpath("*/text()")).flatten], self, \
+                                        h[:id], h[:created], h[:last_modified])
   end
 
   def hash_create(raw_params={}, id=nil)

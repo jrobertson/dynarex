@@ -473,17 +473,13 @@ EOF
       end # end of if @records
     end
 
-    #@log.debug('dynarex: a = ' + a.inspect)
     doc = Rexle.new(a)
     
-    #@log.debug('dynarex: doc.inspect : ' + doc.inspect)
-    #@log.debug('dynarex: doc ' + doc.xml[0..149].inspect)
     if @xslt then
       doc.instructions = [['xml-stylesheet', 
         "title='XSL_formatting' type='text/xsl' href='#{@xslt}'"]]
     end
 
-    #log.debug('dynarex: state: ' + state.inspect)
     return doc if state != :internal
     @doc = doc
   end
@@ -663,7 +659,7 @@ EOF
   alias refresh_doc display_xml
 
   def string_parse(buffer)
-    #@log.debug '+string_parse'
+
     buffer.gsub!("\r",'')
     buffer.gsub!(/\n-{4,}\n/,"\n\n")
     buffer.gsub!(/---\n/m, "--- ")
@@ -672,37 +668,31 @@ EOF
     buffer.gsub!(/<./) {|x| x[1] != '?' ? x.sub(/</,'&lt;') : x }
 
     @raw_header = buffer[/<\?dynarex[^>]+>/]
-    #log = Logger.new('/home/james/mm.log')
-    #log.debug('dynarex: before if buffer()')
-    #@log.debug 'before buffer match'
     
     if buffer[/<\?/] then
-      #@log.debug 'inside buffer'
+
       raw_stylesheet = buffer.slice!(/<\?xml-stylesheet[^>]+>/)
       @xslt = raw_stylesheet[/href=["']([^"']+)/,1] if raw_stylesheet
       @raw_header = buffer.slice!(/<\?dynarex[^>]+>/) + "\n"
       
-      #@log.debug 'before header'
       header = @raw_header[/<?dynarex (.*)?>/,1]
 
       r1 = /([\w\-]+\s*\=\s*'[^']*)'/
       r2 = /([\w\-]+\s*\=\s*"[^"]*)"/
 
       r = header.scan(/#{r1}|#{r2}/).map(&:compact).flatten      
-      #@log.debug 'before each'
+
       r.each do |x|
 
         attr, val = x.split(/\s*=\s*["']/,2)
-        #@log.debug('dynarex: attr' + attr.inspect)
         self.method((attr + '=').to_sym).call(unescape val)
       end
 
     end
-#log = Logger.new('/home/james/mm.log')
-    #@log.debug('dynarex: before root()')
+
     # if records already exist find the max id
     i = @doc.root.xpath('max(records/*/attribute::id)').to_i
-    #log.debug('dyanrex: after root()')
+
     raw_summary = schema[/\[([^\]]+)/,1]
 
     raw_lines = buffer.lines.to_a
@@ -865,8 +855,11 @@ EOF
     s.gsub('&lt;', '<').gsub('&gt;','>')
   end
 
-  def dynarex_new(s)
+  def dynarex_new(s, default_key: nil)
+    
     @schema = s
+    @default_key = default_key if default_key
+    
     ptrn = %r((\w+)\[?([^\]]+)?\]?\/(\w+)\(([^\)]+)\))
     #@log.debug 'inside dynarex_new'
     if s.match(ptrn) then
@@ -901,13 +894,13 @@ EOF
   end
   
   def openx(s)
-    #@log.debug 'inside openx'
+
     if s[/</] then # xml
 
       buffer = s
               
     elsif s[/[\[\(]/] # schema
-      #@log.debug 'before dynarex_new'
+
       dynarex_new(s)
               
     elsif s[/^https?:\/\//] then  # url
@@ -918,12 +911,12 @@ EOF
       if File.exists? s then 
         buffer = File.read s
       elsif @opt[:schema]
-        dynarex_new @opt[:schema]
+        dynarex_new @opt[:schema], default_key: @opt[:default_key]
       else
         raise DynarexException, 'file not found: ' + s
       end
     end
-    #@log.debug 'openx: before buffer'
+
     if buffer then
 
       raw_stylesheet = buffer.slice!(/<\?xml-stylesheet[^>]+>/)
@@ -932,10 +925,9 @@ EOF
       @doc = Rexle.new(buffer) unless @doc      
     end
     
-    #@log.debug('dynarex: before lement summary')
     return if @doc.root.nil?
     e = @doc.root.element('summary')
-    #@log.debug('dynarex: \after element summary')
+
     @schema = e.text('schema')
     @root_name = @doc.root.name
     @summary = summary_to_h
