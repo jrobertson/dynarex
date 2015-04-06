@@ -38,8 +38,7 @@ class Dynarex
 #    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
 
   def initialize(rawx=nil, opt={})
-    
-    #@log = Logger.new('/home/james/mm.log')
+       
     @opt = {username: nil, password: nil}.merge opt
     @delimiter = ''
     @order = 'ascending'
