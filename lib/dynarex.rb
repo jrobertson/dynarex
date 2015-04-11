@@ -609,7 +609,7 @@ EOF
 
   def hash_create(raw_params={}, id=nil)
 
-    record = make_record(raw_params)
+    record = make_record(raw_params,id)
     method_name = @order == 'ascending' ? :add : :prepend
     @doc.root.element('records').method(method_name).call record
 
@@ -633,7 +633,7 @@ EOF
     end
   end
 
-  def make_record(raw_params)
+  def make_record(raw_params, id=nil)
 
     id = (@doc.root.xpath('max(records/*/attribute::id)') || '0').succ unless id
     raw_params.merge!(uid: id) if @default_key.to_sym == :uid
