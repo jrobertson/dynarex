@@ -311,14 +311,13 @@ EOF
 #Parses 1 or more lines of text to create or update existing records.
 
   def parse(x=nil)
-    #log = Logger.new('/home/james/mm.log')
-    #log.debug('dynarex: inside parse()')
+
     raw_buffer, type = RXFHelper.read(x)
 
     if raw_buffer.is_a? String then
       buffer = raw_buffer.clone
       buffer = yield if block_given?          
-      #log.debug('dynarex: before string_parse()')
+
       string_parse buffer
     else
       foreign_import x
@@ -450,9 +449,14 @@ EOF
         xml.records do
            
           records.each do |k, item|
-
-            xml.send(@record_name, {id: item[:id], created: item[:created], \
-                last_modified:  item[:last_modified]}, '') do
+            
+            attributes = {}
+            
+            item.keys.each do |key|
+              attributes[key] = item[key] || '' unless key == :body
+            end
+            
+            xml.send(@record_name, attributes) do
               item[:body].each do |name,value| 
 
                 name = ('._' + name.to_s).to_sym if reserved_keywords.include? name
@@ -862,7 +866,7 @@ EOF
     @default_key = default_key if default_key
     
     ptrn = %r((\w+)\[?([^\]]+)?\]?\/(\w+)\(([^\)]+)\))
-    #@log.debug 'inside dynarex_new'
+
     if s.match(ptrn) then
       @root_name, raw_summary, record_name, raw_fields = s.match(ptrn).captures 
       summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}  
@@ -879,13 +883,13 @@ EOF
     end
 
     format_mask = fields ? fields.map {|x| "[!%s]" % x}.join(' ') : ''
-    #@log.debug 'dynarex_new: before @summary'
+
     @summary = Hash[summary.zip([''] * summary.length).flatten.each_slice(2)\
                     .map{|x1,x2| [x1.to_sym,x2]}]
     @summary.merge!({recordx_type: 'dynarex', format_mask: format_mask, schema: s})
     @records = {}
     @flat_records = {}
-    #@log.debug 'dynarex_new: before rebuild_doc'
+
     rebuild_doc
 
   end
@@ -1008,12 +1012,12 @@ EOF
     puts @doc.to_s
   end
  
-  def records_to_h(state=:ascending)
+  def records_to_h(order=:ascending)
 
     i = @doc.root.xpath('max(records/*/attribute::id)') || 0
     records = @doc.root.xpath('records/*')
 
-    recs = records #jr160315 (state == :descending ? records.reverse : records)
+    recs = records #jr160315 (order == :descending ? records.reverse : records)
     a = recs.inject({}) do |result,row|
 
       created = Time.now.to_s
@@ -1024,9 +1028,6 @@ EOF
       else
         i += 1; id = i.to_s
       end
-
-      created = row.attributes[:created] if row.attributes[:created]
-      last_modified = row.attributes[:last_modified] if row.attributes[:last_modified]
 
       body = (@fields - ['uid']).inject({}) do |r,field|
         
@@ -1043,7 +1044,8 @@ EOF
       
       body[:uid] = id if @default_key == 'uid'
 
-      result.merge body[@default_key.to_sym] => {id: id, created: created, last_modified: last_modified, body: body}
+      attributes = row.attributes
+      result.merge body[@default_key.to_sym] => attributes.merge({id: id, body: body})
     end    
 
   end
