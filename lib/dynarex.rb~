@@ -485,7 +485,8 @@ EOF
   end
   
   def record(id)
-    recordx_to_record @doc.root.element("records/*[@id='#{id}']")
+    e = @doc.root.element("records/*[@id='#{id}']")    
+    recordx_to_record e if e
   end
   
   alias find record
