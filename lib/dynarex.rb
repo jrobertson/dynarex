@@ -862,7 +862,7 @@ EOF
 
   def dynarex_new(s, default_key: nil)
     
-    @schema = s
+    schema = s
     @default_key = default_key if default_key
     
     ptrn = %r((\w+)\[?([^\]]+)?\]?\/(\w+)\(([^\)]+)\))

@@ -331,11 +331,12 @@ EOF
 #  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
 #  dynarex.create name: Bob, age: 52
 
-  def create(arg, id=nil)
+  def create(arg, id=nil, custom_attributes: {})
+
     raise 'Dynarex#create(): input error: no arg provided' unless arg
 
     methods = {Hash: :hash_create, String: :create_from_line}
-    send (methods[arg.class.to_s.to_sym]), arg, id
+    send (methods[arg.class.to_s.to_sym]), arg, id, attr: custom_attributes
 
     @dirty_flag = true
 
@@ -346,7 +347,7 @@ EOF
 #  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
 #  dynarex.create_from_line 'Tracy 37 15-Jun-1972'  
   
-  def create_from_line(line, id=nil)
+  def create_from_line(line, id=nil, attr: '')
     t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
     line.match(/#{t}/).captures
     
@@ -612,9 +613,9 @@ EOF
                                         h[:id], h[:created], h[:last_modified])
   end
 
-  def hash_create(raw_params={}, id=nil)
+  def hash_create(raw_params={}, id=nil, attr: {})
 
-    record = make_record(raw_params,id)
+    record = make_record(raw_params, id, attr: attr)
     method_name = @order == 'ascending' ? :add : :prepend
     @doc.root.element('records').method(method_name).call record
 
@@ -638,7 +639,7 @@ EOF
     end
   end
 
-  def make_record(raw_params, id=nil)
+  def make_record(raw_params, id=nil, attr: {})
 
     id = (@doc.root.xpath('max(records/*/attribute::id)') || '0').succ unless id
     raw_params.merge!(uid: id) if @default_key.to_sym == :uid
@@ -653,9 +654,8 @@ EOF
       record.add element if record
     end
     
-
-
-    attributes = {id: id.to_s, created: Time.now.to_s, last_modified: nil}
+    attributes = {id: id.to_s, created: Time.now.to_s, last_modified: nil}\
+                                                                  .merge attr
     attributes.each {|k,v| record.add_attribute(k, v)}
 
     record
