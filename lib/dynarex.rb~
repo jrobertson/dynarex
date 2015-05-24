@@ -591,19 +591,19 @@ EOF
 
     methods = fields.map do |field|
       "def find_by_#{field}(value) findx_by('#{field}', value) end\n" + \
-        "def find_all_by_#{field}(value) findx_all_by('#{field}', value) end"
+        "def find_all_by_#{field}(value) findx_all_by(\"#{field}\", value) end"
     end
     self.instance_eval(methods.join("\n"))
   end
 
   def findx_by(field, value)
     (load_records; rebuild_doc) if @dirty_flag == true
-    r = @doc.root.element("records/*[#{field}='#{value}']")
+    r = @doc.root.element("records/*[#{field}=\"#{value}\"]")
     r ? recordx_to_record(r) : nil
   end
 
   def findx_all_by(field, value)
-    @doc.root.xpath("records/*[#{field}='#{value}']").map {|x| recordx_to_record x}
+    @doc.root.xpath("records/*[#{field}=\"#{value}\"]").map {|x| recordx_to_record x}
   end
 
   def recordx_to_record(recordx)

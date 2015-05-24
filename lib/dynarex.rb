@@ -181,6 +181,7 @@ class Dynarex
 # Returns all records as a string format specified by the summary format_mask field.  
 
   def to_doc  
+    (load_records; rebuild_doc) if @dirty_flag == true
     @doc
   end
 
@@ -504,7 +505,7 @@ EOF
 
     h = {limit: -1}.merge(opt)
     @xslt_schema = @xslt_schema || self.summary[:xslt_schema]
-    raise 'to_xsl(): xslt_schema nil' unless @xslt_schema
+    raise 'to_xslt(): xslt_schema nil' unless @xslt_schema
 
     xslt = DynarexXSLT.new(schema: @schema, xslt_schema: @xslt_schema ).to_xslt
 
@@ -575,6 +576,7 @@ EOF
   def xslt=(value)
     
     self.summary.merge!({xslt: value})
+    @dirty_flag = true
     @xslt = value
   end  
 
