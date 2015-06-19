@@ -25,7 +25,7 @@ end
 
 class Dynarex
 
-  attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, 
+  attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :linked,
       :order, :type, :limit_by, :xslt
   
   
@@ -107,6 +107,10 @@ class Dynarex
 
   def inspect()
     "<object #%s>" % [self.object_id]
+  end
+  
+  def linked=(bool)
+    @linked = bool == 'true'
   end
     
   def order=(value)
@@ -264,7 +268,8 @@ EOF
       header + "--#\n" + out.text
     elsif self.delimiter.length > 0 then
 
-      tfo = TableFormatter.new border: false, nowrap: true, divider: self.delimiter
+      tfo = TableFormatter.new border: false, nowrap: true, \
+                                                  divider: self.delimiter
       tfo.source = self.to_h.map{|x| x.values}      
       header + tfo.display
 
@@ -349,7 +354,8 @@ EOF
 #  dynarex.create_from_line 'Tracy 37 15-Jun-1972'  
   
   def create_from_line(line, id=nil, attr: '')
-    t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[').sub(/\]/,'\]')
+    t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[')\
+                                                                .sub(/\]/,'\]')
     line.match(/#{t}/).captures
     
     a = line.match(/#{t}/).captures
@@ -435,7 +441,8 @@ EOF
 
           v = value.gsub('>','&gt;')\
             .gsub('<','&lt;')\
-            .gsub(/(&\s|&[a-zA-Z\.]+;?)/) {|x| x[-1] == ';' ? x : x.sub('&','&amp;')}
+            .gsub(/(&\s|&[a-zA-Z\.]+;?)/) {|x| x[-1] == ';' ? x \
+                                                      : x.sub('&','&amp;')}
 
           xml.send key, v
 
@@ -461,8 +468,11 @@ EOF
             xml.send(@record_name, attributes) do
               item[:body].each do |name,value| 
 
-                name = ('._' + name.to_s).to_sym if reserved_keywords.include? name
-                val = value.send(value.is_a?(String) ? :to_s : :to_yaml)                
+                if reserved_keywords.include? name then
+                  name = ('._' + name.to_s).to_sym 
+                end
+                
+                val = value.send(value.is_a?(String) ? :to_s : :to_yaml)
                 xml.send(name, val.gsub('>','&gt;')\
                   .gsub('<','&lt;')\
                   .gsub(/(&\s|&[a-zA-Z\.]+;?)/) do |x| 
@@ -605,14 +615,15 @@ EOF
   end
 
   def findx_all_by(field, value)
-    @doc.root.xpath("records/*[#{field}=\"#{value}\"]").map {|x| recordx_to_record x}
+    @doc.root.xpath("records/*[#{field}=\"#{value}\"]")\
+                                             .map {|x| recordx_to_record x}
   end
 
   def recordx_to_record(recordx)
     
     h = recordx.attributes
-    RecordX.new(Hash[*@fields.zip(recordx.xpath("*/text()")).flatten], self, \
-                                        h[:id], h[:created], h[:last_modified])
+    hash = Hash[*@fields.zip(recordx.xpath("*/text()")).flatten]
+    RecordX.new(hash, self, h[:id], h[:created], h[:last_modified])
   end
 
   def hash_create(raw_params={}, id=nil, attr: {})
@@ -625,7 +636,7 @@ EOF
 
   def capture_fields(params)
     fields = Hash[@fields.map {|x| [x,nil]}]
-    fields.keys.each {|key| fields[key] = params[key.to_sym] if params.has_key? key.to_sym}      
+    fields.keys.each {|key| fields[key] = params[key.to_sym] if params.has_key? key.to_sym}
     fields
   end
   
@@ -665,6 +676,26 @@ EOF
 
   alias refresh_doc display_xml
 
+  def parse_links(raw_lines)
+    puts 'raw_lines : '  + raw_lines.inspect
+    raw_lines.map do |line|
+
+      buffer = RXFHelper.read(line.chomp).first
+
+      doc = Rexle.new buffer
+      
+      if doc.root.name == 'kvx' then
+
+        kvx = Kvx.new doc
+        h = kvx.to_h[:body]
+        @fields.inject([]){|r,x| r << h[x]}
+
+      end
+
+    end
+
+  end
+  
   def string_parse(buffer)
 
     buffer.gsub!("\r",'')
@@ -792,25 +823,32 @@ EOF
         
     else
 
-      raw_lines = raw_lines.join("\n").gsub(/^\s*#[^\n]+/,'').lines.to_a        
-      a2 = raw_lines.map.with_index do |x,i|
-
-        next if x[/^\s+$|\n\s*#/]
-        
-        begin
-          
-          field_names, field_values = RXRawLineParser.new(@format_mask).parse(x)
-        rescue
-          raise "input file parser error at line " + (i + 1).to_s + ' --> ' + x
-        end
-        field_values
-      end
+      raw_lines = raw_lines.join("\n").gsub(/^(\s*#[^\n]+|\n)/,'').lines.to_a
       
-      a2.compact!
-      a3 = a2.compact.map(&:first)
-      add_id(a2) if a3 != a3.uniq 
+      if @linked then
 
-      a2
+        parse_links(raw_lines)
+
+      else
+        a2 = raw_lines.map.with_index do |x,i|
+
+          next if x[/^\s+$|\n\s*#/]
+          
+          begin
+            
+            field_names, field_values = RXRawLineParser.new(@format_mask).parse(x)
+          rescue
+            raise "input file parser error at line " + (i + 1).to_s + ' --> ' + x
+          end
+          field_values
+        end
+      
+        a2.compact!
+        a3 = a2.compact.map(&:first)
+        add_id(a2) if a3 != a3.uniq 
+        a2
+      end      
+
     end
 
     a = lines.map.with_index do |x,i| 
