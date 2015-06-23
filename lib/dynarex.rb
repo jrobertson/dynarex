@@ -339,7 +339,7 @@ EOF
 #  dynarex.create name: Bob, age: 52
 
   def create(arg, id=nil, custom_attributes: {})
-
+    
     raise 'Dynarex#create(): input error: no arg provided' unless arg
 
     methods = {Hash: :hash_create, String: :create_from_line}
@@ -376,11 +376,12 @@ EOF
 #  dynarex.update 4, name: Jeff, age: 38  
   
   def update(id, params={})
-    fields = capture_fields(params)
 
+    fields = capture_fields(params)
 
     # for each field update each record field
     record = @doc.root.element("records/#{@record_name}[@id='#{id.to_s}']")    
+
     fields.each {|k,v| record.element(k.to_s).text = v if v}
     record.add_attribute(last_modified: Time.now.to_s)
 
@@ -678,7 +679,7 @@ EOF
   alias refresh_doc display_xml
 
   def parse_links(raw_lines)
-    puts 'raw_lines : '  + raw_lines.inspect
+
     raw_lines.map do |line|
 
       buffer = RXFHelper.read(line.chomp).first
@@ -909,8 +910,14 @@ EOF
     ptrn = %r((\w+)\[?([^\]]+)?\]?\/(\w+)\(([^\)]+)\))
 
     if s.match(ptrn) then
+      
       @root_name, raw_summary, record_name, raw_fields = s.match(ptrn).captures 
-      summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}  
+      summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}
+      
+      if fields.include? 'id' then
+        raise 'Dynarex#dynarex_new: schema field id is a reserved keyword' 
+      end
+      
       create_find fields
       
       reserved = %w(require parent)

@@ -16,7 +16,8 @@ require 'rowx'
 require 'nokogiri'
 require 'ostruct'
 require 'table-formatter'
-require 'rxfhelper'
+#require 'rxfhelper'
+require 'kvx'
 
 
 class DynarexException < Exception
