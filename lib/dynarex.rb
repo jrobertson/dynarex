@@ -338,7 +338,7 @@ EOF
 #  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
 #  dynarex.create name: Bob, age: 52
 
-  def create(arg, id=nil, custom_attributes: {})
+  def create(arg, id: nil, custom_attributes: {})
     
     raise 'Dynarex#create(): input error: no arg provided' unless arg
 
