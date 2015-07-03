@@ -298,6 +298,17 @@ EOF
 
   end
 
+  def to_table()
+    
+    tfo = TableFormatter.new
+    a = self.to_h
+    rows = a.map{|h| h.values}
+    tfo.source = rows
+    tfo.labels = a.first.keys.map{|x| x.to_s.capitalize }
+    tfo
+    
+  end
+  
   def to_xml(opt={}) 
     opt = {pretty: true} if opt == :pretty
     display_xml(opt)

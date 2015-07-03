@@ -269,7 +269,7 @@ EOF
       header + "--#\n" + out.text
     elsif self.delimiter.length > 0 then
 
-      tfo = TableFormatter.new border: false, nowrap: true, \
+      tfo = TableFormatter.new border: false, wrap: false, \
                                                   divider: self.delimiter
       tfo.source = self.to_h.map{|x| x.values}      
       header + tfo.display
@@ -298,13 +298,19 @@ EOF
 
   end
 
-  def to_table()
+  def to_table(fields: nil)
     
     tfo = TableFormatter.new
     a = self.to_h
-    rows = a.map{|h| h.values}
-    tfo.source = rows
-    tfo.labels = a.first.keys.map{|x| x.to_s.capitalize }
+    
+    rows = a.map do |h| 
+      
+      fields ? fields.map {|x| h[x]} : h.values
+
+    end
+    
+    tfo.source = rows            
+    tfo.labels = (fields ? fields : a.first.keys).map{|x| x.to_s.capitalize }
     tfo
     
   end
