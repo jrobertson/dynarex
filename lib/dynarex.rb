@@ -169,9 +169,29 @@ class Dynarex
   
   # Returns a ready-only snapshot of records as a simple Hash.  
   #
-  def flat_records    
+  def flat_records(select: nil)
+    
+    fields = select
+    
     load_records if @dirty_flag == true
-    @flat_records
+    
+    if fields then
+      
+      case fields.class.to_s.downcase.to_sym
+      when :string
+        field = fields.to_sym
+        @flat_records.map {|x| x[field]}
+      when :symbol
+        field = fields
+        @flat_records.map {|x| x[field]}
+      when :array
+        fields.map {|field| @flat_records.map {|x| x[field.to_sym] } }
+      end
+      
+    else
+      @flat_records
+    end
+    
   end
   
   alias to_h flat_records
