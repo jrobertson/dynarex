@@ -174,18 +174,19 @@ class Dynarex
     fields = select
     
     load_records if @dirty_flag == true
-    
+
     if fields then
       
       case fields.class.to_s.downcase.to_sym
       when :string
         field = fields.to_sym
-        @flat_records.map {|x| x[field]}
+        @flat_records.map {|row| {field => row[field]}}
       when :symbol
-        field = fields
-        @flat_records.map {|x| x[field]}
+        field = fields.to_sym
+        @flat_records.map {|row| {field => row[field]} }
       when :array
-        fields.map {|field| @flat_records.map {|x| x[field.to_sym] } }
+        @flat_records.map {|row| fields.inject({})\
+                           {|r,x| r.merge(x.to_sym => row[x.to_sym])}}
       end
       
     else

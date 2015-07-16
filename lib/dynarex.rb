@@ -42,6 +42,7 @@ class Dynarex
     
     @opt = {username: nil, password: nil}.merge opt
     @delimiter = ''
+    @spaces_delimited = false
     @order = 'ascending'
 
     openx(rawx.clone) if rawx
@@ -70,6 +71,11 @@ class Dynarex
 
   def delimiter=(separator)
 
+    if separator == :spaces then
+      @spaces_delimited = true
+      separator = ' # '
+    end
+    
     @delimiter = separator
 
     if separator.length > 0 then 
@@ -737,6 +743,10 @@ EOF
   end
   
   def string_parse(buffer)
+    
+    if @spaces_delimited then
+      buffer = buffer.lines.map{|x| x.gsub(/\s{2,}/,' # ')}.join 
+    end
 
     buffer.gsub!("\r",'')
     buffer.gsub!(/\n-{4,}\n/,"\n\n")
