@@ -254,7 +254,7 @@ EOF
       if self.delimiter.length > 0 then
         smry_fields << :delimiter 
       else
-        smry_fields << :format_mask
+        smry_fields << :format_mask unless self.summary[:rawdoc_type] == 'rowx'
       end
       s = smry_fields.map {|x| "%s=\"%s\"" % \
         [x, self.send(x).gsub('"', '\"') ]}.join ' '
@@ -797,7 +797,7 @@ EOF
       while not raw_lines.empty? and \
           raw_lines.first[/#{a_summary.join('|')}:\s+\S+/] do
 
-        label, val = raw_lines.shift.chomp.match(/(\w+):\s+([^$]+)$/).captures
+        label, val = raw_lines.shift.chomp.match(/(\w+):\s*([^$]+)$/).captures
         @summary[label.to_sym] = val
       end
 
