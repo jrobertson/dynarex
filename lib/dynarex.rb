@@ -363,7 +363,7 @@ EOF
 
   def parse(x=nil)
 
-    x.each {|record| self.create record }; return self if x.is_a? Array
+    (x.each {|record| self.create record }; return self) if x.is_a? Array
     raw_buffer, type = RXFHelper.read(x)
 
     if raw_buffer.is_a? String then
