@@ -217,6 +217,12 @@ class Dynarex
     @doc
   end
 
+  def to_html(domain: '')
+    xsl_buffer = RXFHelper.read(domain + @xslt).first
+    xslt  = Nokogiri::XSLT(xsl_buffer)
+    xslt.transform(Nokogiri::XML(@doc.to_s)).to_s 
+  end      
+  
   def to_s
 
 xsl_buffer =<<EOF
@@ -623,7 +629,7 @@ EOF
     #Rexle.new("<rss version='2.0'>%s</rss>" % xml).xml(pretty: true)
 
     doc = Rexle.new("<rss version='2.0'>%s</rss>" % out.to_s)
-    yield( doc ) if_block_given?
+    yield( doc ) if block_given?
     xml = doc.xml(pretty: true)
     xml
   end
