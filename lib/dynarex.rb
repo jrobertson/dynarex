@@ -559,6 +559,7 @@ EOF
   end
   
   alias find record
+  alias find_by_id record
 
   def record_exists?(id)
     !@doc.root.element("records/*[@id='#{id}']").nil?
