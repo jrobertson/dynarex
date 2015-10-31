@@ -27,7 +27,7 @@ end
 class Dynarex
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :linked,
-      :order, :type, :limit_by, :xslt
+      :order, :type, :limit, :xslt
   
   
 #Create a new dynarex document from 1 of the following options:
@@ -44,14 +44,9 @@ class Dynarex
     @delimiter = ''
     @spaces_delimited = false
     @order = 'ascending'
+    @limit = nil
 
     openx(rawx.clone) if rawx
-=begin 160315
-    if @order == 'descending' then
-      @records = records_to_h(:descending) 
-      rebuild_doc
-    end
-=end    
 
   end
 
@@ -122,15 +117,9 @@ class Dynarex
     
   def order=(value)
     
-    self.summary.merge!({order: value})    
-=begin    jr 160315
-    if @order == 'ascending' and value == 'descending' then
-      sort_records
-    elsif @order == 'descending' and value == 'ascending'
-      sort_records
-    end    
-=end    
-    @order = value
+    self.summary.merge!({order: value.to_s})    
+
+    @order = value.to_s
   end
   
   def recordx_type()
@@ -147,10 +136,6 @@ class Dynarex
     @summary[:type] = v
   end
   
-  def limit_by=(val)
-    @limit_by = val.to_i
-  end
-
   # Returns the hash representation of the document summary.
   #
   def summary
@@ -700,12 +685,20 @@ EOF
   def display_xml(options={})
 
     opt = {unescape_html: false}.merge options
-    load_records if @dirty_flag == true
-    doc = rebuild_doc(:external)
+    
+    state = :external
+    
+    if @dirty_flag == true then
+      load_records 
+      state = :internal
+    end
+    
+    doc = rebuild_doc(state)
+    
     if opt[:unescape_html] == true then
-      doc.content(opt) #jr230711 pretty: true
+      doc.content(opt)
     else
-      doc.xml(opt) #jr230711 pretty: true      
+      doc.xml(opt)
     end
   end
 
@@ -951,7 +944,6 @@ EOF
     h.each {|key, item| h.delete(key) if not h2.has_key? key}
 
     @flat_records = @records.values.map{|x| x[:body]}
-    @flat_records = @flat_records.take @limit_by if @limit_by
 
     rebuild_doc
     self
@@ -1101,8 +1093,7 @@ EOF
   def load_records
 
     @records = records_to_h
-
-    @records = @records.take @limit_by if @limit_by
+    
     
     @records.instance_eval do
        def delete_item(i)
@@ -1123,6 +1114,7 @@ EOF
 
     i = @doc.root.xpath('max(records/*/attribute::id)') || 0
     records = @doc.root.xpath('records/*')
+    records = records.take @limit if @limit
 
     recs = records #jr160315 (order == :descending ? records.reverse : records)
     a = recs.inject({}) do |result,row|
