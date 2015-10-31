@@ -569,9 +569,9 @@ EOF
       doc = Rexle.new(self.to_xslt)
       e = doc.element('//xsl:apply-templates[2]')
 
-      order = self.order || 'descending'
-      doc2 = Rexle.new "<xsl:sort order='#{order}' data-type='number' select='@id'/>"
-      e.add doc2.root
+      #jr311015 order = self.order || 'descending'
+      #jr311015 doc2 = Rexle.new "<xsl:sort order='#{order}' data-type='number' select='@id'/>"
+      #jr311015 e.add doc2.root
       
       e2 = doc.root.element('xsl:template[3]')
       item = e2.element('item')
