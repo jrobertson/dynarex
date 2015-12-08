@@ -374,12 +374,20 @@ EOF
 #  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
 #  dynarex.create name: Bob, age: 52
 
-  def create(arg, id: nil, custom_attributes: {})
+  def create(obj, id: nil, custom_attributes: {})
     
-    raise 'Dynarex#create(): input error: no arg provided' unless arg
-
-    methods = {Hash: :hash_create, String: :create_from_line}
-    send (methods[arg.class.to_s.to_sym]), arg, id, attr: custom_attributes
+    raise 'Dynarex#create(): input error: no arg provided' unless obj
+    
+    case obj.class.to_s.downcase.to_sym    
+    when :hash
+      hash_create  obj, id, attr: custom_attributes
+    when :string
+      create_from_line obj, id, attr: custom_attributes
+    when :recordx
+      hash_create  obj.to_h, id || obj.id, attr: custom_attributes
+    else
+      hash_create  obj.to_h, id, attr: custom_attributes
+    end
 
     @dirty_flag = true
 
