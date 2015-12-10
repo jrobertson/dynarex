@@ -458,96 +458,13 @@ EOF
   end    
   
   def sort_by!(&element_blk)
-    refresh_doc
-    a = @doc.root.xpath('records/*').sort_by &element_blk
-    @doc.root.delete('records')
 
-    records = Rexle::Element.new 'records'
+    r = sort_records_by! &element_blk
+    @dirty_flag = true    
+    r
 
-    a.each {|record| records.add record}
-
-    @doc.root.add records
-
-    load_records if @dirty_flag
-    self
   end  
 
-  def rebuild_doc(state=:internal)
-
-    reserved_keywords = ( 
-                          Object.public_methods | \
-                          Kernel.public_methods | \
-                          public_methods + [:method_missing]
-                        )
-    
-    xml = RexleBuilder.new
-
-    a = xml.send @root_name do
-
-      xml.summary do
-
-        @summary.each do |key,value|
-
-          v = value.gsub('>','&gt;')\
-            .gsub('<','&lt;')\
-            .gsub(/(&\s|&[a-zA-Z\.]+;?)/) {|x| x[-1] == ';' ? x \
-                                                      : x.sub('&','&amp;')}
-
-          xml.send key, v
-
-        end
-      end
-
-      records = @records.to_a
-
-      if records then
-
-        #jr160315records.reverse! if @order == 'descending' and state == :external
-
-        xml.records do
-           
-          records.each do |k, item|
-            
-            attributes = {}
-            
-            item.keys.each do |key|
-              attributes[key] = item[key] || '' unless key == :body
-            end
-            
-            xml.send(@record_name, attributes) do
-              item[:body].each do |name,value| 
-
-                if reserved_keywords.include? name then
-                  name = ('._' + name.to_s).to_sym 
-                end
-                
-                val = value.send(value.is_a?(String) ? :to_s : :to_yaml)
-                xml.send(name, val.gsub('>','&gt;')\
-                  .gsub('<','&lt;')\
-                  .gsub(/(&\s|&[a-zA-Z\.]+;?)/) do |x| 
-                    x[-1] == ';' ? x : x.sub('&','&amp;')
-                  end
-                )
-              end
-            end
-          end
-
-        end
-      else
-        xml.records
-      end # end of if @records
-    end
-
-    doc = Rexle.new(a)
-    
-    if @xslt then
-      doc.instructions = [['xml-stylesheet', 
-        "title='XSL_formatting' type='text/xsl' href='#{@xslt}'"]]
-    end
-
-    return doc if state != :internal
-    @doc = doc
-  end
   
   def record(id)
     e = @doc.root.element("records/*[@id='#{id}']")    
@@ -753,6 +670,83 @@ EOF
 
   end
   
+  def rebuild_doc(state=:internal)
+
+    reserved_keywords = ( 
+                          Object.public_methods | \
+                          Kernel.public_methods | \
+                          public_methods + [:method_missing]
+                        )
+    
+    xml = RexleBuilder.new
+
+    a = xml.send @root_name do
+
+      xml.summary do
+
+        @summary.each do |key,value|
+
+          v = value.gsub('>','&gt;')\
+            .gsub('<','&lt;')\
+            .gsub(/(&\s|&[a-zA-Z\.]+;?)/) {|x| x[-1] == ';' ? x \
+                                                      : x.sub('&','&amp;')}
+
+          xml.send key, v
+
+        end
+      end
+
+      records = @records.to_a
+
+      if records then
+
+        #jr160315records.reverse! if @order == 'descending' and state == :external
+
+        xml.records do
+           
+          records.each do |k, item|
+            
+            attributes = {}
+            
+            item.keys.each do |key|
+              attributes[key] = item[key] || '' unless key == :body
+            end
+            
+            xml.send(@record_name, attributes) do
+              item[:body].each do |name,value| 
+
+                if reserved_keywords.include? name then
+                  name = ('._' + name.to_s).to_sym 
+                end
+                
+                val = value.send(value.is_a?(String) ? :to_s : :to_yaml)
+                xml.send(name, val.gsub('>','&gt;')\
+                  .gsub('<','&lt;')\
+                  .gsub(/(&\s|&[a-zA-Z\.]+;?)/) do |x| 
+                    x[-1] == ';' ? x : x.sub('&','&amp;')
+                  end
+                )
+              end
+            end
+          end
+
+        end
+      else
+        xml.records
+      end # end of if @records
+    end
+
+    doc = Rexle.new(a)
+    
+    if @xslt then
+      doc.instructions = [['xml-stylesheet', 
+        "title='XSL_formatting' type='text/xsl' href='#{@xslt}'"]]
+    end
+
+    return doc if state != :internal
+    @doc = doc
+  end  
+  
   def string_parse(buffer)
     
     if @spaces_delimited then
@@ -926,6 +920,22 @@ EOF
     rebuild_doc
     self
   end
+  
+  def sort_records_by!(&element_blk)
+    
+    refresh_doc
+    a = @doc.root.xpath('records/*').sort_by &element_blk
+    @doc.root.delete('records')
+
+    records = Rexle::Element.new 'records'
+
+    a.each {|record| records.add record}
+
+    @doc.root.add records
+
+    load_records if @dirty_flag
+    self
+  end    
 
   def unescape(s)
     s.gsub('&lt;', '<').gsub('&gt;','>')
@@ -1071,7 +1081,11 @@ EOF
   def load_records
 
     @dirty_flag = false
-    self.sort_by! {|x| x.element(@default_key.to_s).text } if @summary.has_key? :order    
+    
+    if @summary[:order] then
+      orderfield = @summary[:order][/(\w+)\s+(?:ascending|descending)/,1] 
+      self.sort_records_by! {|x| x.element(orderfield).text }  if orderfield
+    end
     
     @records = records_to_h
       
