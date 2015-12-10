@@ -354,6 +354,8 @@ EOF
 
   def parse(x=nil)
 
+    @dirty_flag = true
+    
     (x.each {|record| self.create record }; return self) if x.is_a? Array
     raw_buffer, type = RXFHelper.read(x)
 
@@ -365,6 +367,7 @@ EOF
     else
       foreign_import x
     end
+    
   end  
 
 
