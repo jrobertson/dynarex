@@ -465,7 +465,7 @@ EOF
 
     @doc.root.add records
 
-    load_records
+    load_records if @dirty_flag
     self
   end  
 
@@ -576,10 +576,6 @@ EOF
       h = {limit: 11}.merge(opt)
       doc = Rexle.new(self.to_xslt)
       e = doc.element('//xsl:apply-templates[2]')
-
-      #jr311015 order = self.order || 'descending'
-      #jr311015 doc2 = Rexle.new "<xsl:sort order='#{order}' data-type='number' select='@id'/>"
-      #jr311015 e.add doc2.root
       
       e2 = doc.root.element('xsl:template[3]')
       item = e2.element('item')
@@ -816,35 +812,6 @@ EOF
                                                              or @summary[:xsl]
     end
 
-=begin 170315
-    if @type == 'checklist' then
-      
-      # extract the brackets from the line
-
-      checked = []
-      raw_lines.map! do |x| 
-        raw_checked, raw_line = x.partition(/\]/).values_at 0,2
-        checked << (raw_checked[/x/] ? true : false)
-        raw_line
-      end
-
-    end
-
-
-    if @order == 'descending' then
-      rl = raw_lines
-
-      if rl.first =~ /--/ then
-        raw_lines = [rl[0]] + rl[1..-1].each_slice(@fields.count).inject([])\
-            {|r,x| r += x.reverse }.reverse
-      else
-        raw_lines = rl.each_slice(@fields.count).inject([])\
-            {|r,x| r += x.reverse }.reverse
-      end
-      checked.reverse! if @type == 'checklist'
-      
-    end    
-=end
     @summary[:recordx_type] = 'dynarex'
     @summary[:schema] = @schema
     @summary[:format_mask] = @format_mask
@@ -1100,9 +1067,11 @@ EOF
 
   def load_records
 
+    @dirty_flag = false
+    self.sort_by! {|x| x.element(@default_key.to_s).text } if @summary.has_key? :order    
+    
     @records = records_to_h
-    
-    
+      
     @records.instance_eval do
        def delete_item(i)
          self.delete self.keys[i]
@@ -1111,7 +1080,7 @@ EOF
       
     #Returns a ready-only snapshot of records as a simple Hash.
     @flat_records = @records.values.map{|x| x[:body]}
-    @dirty_flag = false
+
   end
 
   def display()
