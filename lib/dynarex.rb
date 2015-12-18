@@ -45,6 +45,7 @@ class Dynarex
     @spaces_delimited = false
     @order = 'ascending'
     @limit = nil
+    @records, @flat_records = [], []
 
     openx(rawx.clone) if rawx
 
