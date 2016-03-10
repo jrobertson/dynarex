@@ -13,7 +13,6 @@ require 'recordx'
 require 'rxraw-lineparser'
 require 'yaml'
 require 'rowx'
-require 'nokogiri'
 require 'ostruct'
 require 'table-formatter'
 #require 'rxfhelper'
@@ -205,8 +204,9 @@ class Dynarex
 
   def to_html(domain: '')
     xsl_buffer = RXFHelper.read(domain + @xslt).first
-    xslt  = Nokogiri::XSLT(xsl_buffer)
-    xslt.transform(Nokogiri::XML(@doc.to_s)).to_s 
+    #jr100316 xslt  = Nokogiri::XSLT(xsl_buffer)
+    #jr100316 xslt.transform(Nokogiri::XML(@doc.to_s)).to_s 
+    Rexslt.new(xsl_buffer, @doc).to_s
   end      
   
   def to_s
@@ -266,10 +266,12 @@ EOF
       xslt_format = a.join      
 
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
-      xslt  = Nokogiri::XSLT(xsl_buffer)
-      out = xslt.transform(Nokogiri::XML(@doc.to_s))
+      #jr100316 xslt  = Nokogiri::XSLT(xsl_buffer)
+      #jr100316 out = xslt.transform(Nokogiri::XML(@doc.to_s))
+      out = Rexslt.new(xsl_buffer, @doc).to_s
       
-      header + "\n--+\n" + out.text
+      #jr100316 header + "\n--+\n" + out.text
+      header + "\n--+\n" + out
     elsif self.summary[:rawdoc_type] == 'sectionx' then  
       
       a = (self.fields - [:uid, 'uid']).map do |field|
@@ -282,10 +284,13 @@ EOF
 
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
       
-      xslt  = Nokogiri::XSLT(xsl_buffer)
-      out = xslt.transform(Nokogiri::XML(@doc.to_s))
+      #jr100316 xslt  = Nokogiri::XSLT(xsl_buffer)
+      #jr100316 out = xslt.transform(Nokogiri::XML(@doc.to_s))
+      out = Rexslt.new(xsl_buffer, @doc).to_s
       
-      header + "--#\n" + out.text
+      #jr100316 header + "--#\n" + out.text
+      header + "--#\n" + out
+      
     elsif self.delimiter.length > 0 then
 
       tfo = TableFormatter.new border: false, wrap: false, \
@@ -301,10 +306,12 @@ EOF
         .gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
         
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
-      xslt  = Nokogiri::XSLT(xsl_buffer)
+      #jr100316 xslt  = Nokogiri::XSLT(xsl_buffer)
       
-      out = xslt.transform(Nokogiri::XML(self.to_xml))
-      header + "\n" + out.text
+      #jr100316 out = xslt.transform(Nokogiri::XML(self.to_xml))
+      out = Rexslt.new(xsl_buffer, @doc).to_s
+      #jr100316 header + "\n" + out.text
+      header + "\n" + out
     end
                              
     #xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
@@ -532,9 +539,11 @@ EOF
     #File.open('dynarex.xml','w'){|f| f.write doc.xml}
     #xml = Rexslt.new(xslt, doc.xml).to_s
 #=begin
-    xslt  = Nokogiri::XSLT(xslt)
-    out = xslt.transform(Nokogiri::XML(doc.root.xml)).to_xml \
-                 :save_with => Nokogiri::XML::Node::SaveOptions::NO_DECLARATION
+    #jr100316 xslt  = Nokogiri::XSLT(xslt)
+    #jr100316 out = xslt.transform(Nokogiri::XML(doc.root.xml)).to_xml \
+    #jr100316              :save_with => Nokogiri::XML::Node::SaveOptions::NO_DECLARATION
+    out = Rexslt.new(xsl_buffer, @doc).to_s(declaration: false)
+    
 #=end
 
     #Rexle.new("<rss version='2.0'>%s</rss>" % xml).xml(pretty: true)
