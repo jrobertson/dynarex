@@ -542,7 +542,7 @@ EOF
     #jr100316 xslt  = Nokogiri::XSLT(xslt)
     #jr100316 out = xslt.transform(Nokogiri::XML(doc.root.xml)).to_xml \
     #jr100316              :save_with => Nokogiri::XML::Node::SaveOptions::NO_DECLARATION
-    out = Rexslt.new(xsl_buffer, @doc).to_s(declaration: false)
+    out = Rexslt.new(xslt, @doc).to_s(declaration: false)
     
 #=end
 
