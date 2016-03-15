@@ -266,11 +266,8 @@ EOF
       xslt_format = a.join      
 
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
-      #jr100316 xslt  = Nokogiri::XSLT(xsl_buffer)
-      #jr100316 out = xslt.transform(Nokogiri::XML(@doc.to_s))
       out = Rexslt.new(xsl_buffer, @doc).to_s
       
-      #jr100316 header + "\n--+\n" + out.text
       header + "\n--+\n" + out
     elsif self.summary[:rawdoc_type] == 'sectionx' then  
       
@@ -282,13 +279,9 @@ EOF
 
       xslt_format = a.join      
 
-      xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
-      
-      #jr100316 xslt  = Nokogiri::XSLT(xsl_buffer)
-      #jr100316 out = xslt.transform(Nokogiri::XML(@doc.to_s))
+      xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)      
       out = Rexslt.new(xsl_buffer, @doc).to_s
       
-      #jr100316 header + "--#\n" + out.text
       header + "--#\n" + out
       
     elsif self.delimiter.length > 0 then
@@ -306,21 +299,10 @@ EOF
         .gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
         
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
-      #jr100316 xslt  = Nokogiri::XSLT(xsl_buffer)
       
-      #jr100316 out = xslt.transform(Nokogiri::XML(self.to_xml))
       out = Rexslt.new(xsl_buffer, @doc).to_s
-      #jr100316 header + "\n" + out.text
       header + "\n" + out
     end
-                             
-    #xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
-    #xslt  = Nokogiri::XSLT(xsl_buffer)
-    #out = xslt.transform(Nokogiri::XML(@doc.to_s))
-    #jr250811 puts 'xsl_buffer: ' + xsl_buffer
-    #jr250811 puts 'doc_to_s: ' + @doc.to_s
-    #out.text
-    #jr231211 Rexslt.new(xsl_buffer, @doc.to_s).to_s
 
   end
 
@@ -484,6 +466,36 @@ EOF
 
   def record_exists?(id)
     !@doc.root.element("records/*[@id='#{id}']").nil?
+  end
+  
+  # used internally by to_rss()
+  #
+  def rss_xslt(opt={})
+  
+    h = {limit: 11}.merge(opt)
+    doc = Rexle.new(self.to_xslt)
+    e = doc.element('//xsl:apply-templates[2]')
+    
+    e2 = doc.root.element('xsl:template[3]')
+    item = e2.element('item')
+    new_item = item.deep_clone
+    item.delete
+    
+    pubdate = @xslt_schema[/pubDate:/]
+    xslif = Rexle.new("<xsl:if test='position() &lt; #{h[:limit]}'/>").root
+
+    if pubdate.nil? then
+      pubdate = Rexle.new("<pubDate><xsl:value-of select='pubDate'>" + \
+                              "</xsl:value-of></pubDate>").root
+      new_item.add pubdate      
+    end
+
+    xslif.add new_item      
+    e2.add xslif.root
+    xslt = doc.xml      
+
+    xslt    
+    
   end
 
   def to_xslt(opt={})    
@@ -1056,7 +1068,7 @@ EOF
 
     @default_key ||= e.text('default_key')
     @format_mask = e.text('format_mask')
-    
+
     @fields = @schema[/([^(]+)\)$/,1].split(/\s*,\s*/).map(&:to_sym)
 
     @fields << @default_key if @default_key and \
@@ -1244,7 +1256,9 @@ XSL
   
   def summary_to_h
 
-    @doc.root.xpath('summary/*').inject({}) do |r,node|
+    h = {recordx_type: 'dynarex'}
+    
+    @doc.root.xpath('summary/*').inject(h) do |r,node|
       r.merge node.name.to_s.to_sym => node.text.to_s
     end
   end
