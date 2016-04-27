@@ -38,7 +38,10 @@ class Dynarex
 #    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
 
   def initialize(rawx=nil, opt={})
-    
+
+    #File.write '/tmp/d.log',''
+    #@logger  = Logger.new '/tmp/d.log','daily'
+    #@logger.debug 'inside intialize'
     @opt = {username: nil, password: nil}.merge opt
     @delimiter = ''
     @spaces_delimited = false
@@ -47,6 +50,7 @@ class Dynarex
     @records, @flat_records = [], []
 
     openx(rawx.clone) if rawx
+    #@logger.debug 'doc: ' + @doc.xml.inspect
 
   end
 
@@ -204,10 +208,17 @@ class Dynarex
 
   def to_html(domain: '')
     xsl_buffer = RXFHelper.read(domain + @xslt).first
-    #jr100316 xslt  = Nokogiri::XSLT(xsl_buffer)
-    #jr100316 xslt.transform(Nokogiri::XML(@doc.to_s)).to_s 
     Rexslt.new(xsl_buffer, @doc).to_s
   end      
+  
+  def to_json(pretty: false)
+    
+    records = self.to_h
+    summary = self.summary.to_h
+
+    h = {summary: summary, records: records}
+    pretty ? JSON.pretty_generate(h) : h.to_json
+  end
   
   def to_s
 
@@ -279,7 +290,8 @@ EOF
 
       xslt_format = a.join      
 
-      xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)      
+      xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
+      File.write '/home/james/liveblog2.xsl', xsl_buffer      
       out = Rexslt.new(xsl_buffer, @doc).to_s
       
       header + "--#\n" + out
@@ -547,16 +559,8 @@ EOF
       end
     end
 
-    #File.open('dynarex.xsl','w'){|f| f.write xslt}
-    #File.open('dynarex.xml','w'){|f| f.write doc.xml}
-    #xml = Rexslt.new(xslt, doc.xml).to_s
-#=begin
-    #jr100316 xslt  = Nokogiri::XSLT(xslt)
-    #jr100316 out = xslt.transform(Nokogiri::XML(doc.root.xml)).to_xml \
-    #jr100316              :save_with => Nokogiri::XML::Node::SaveOptions::NO_DECLARATION
+
     out = Rexslt.new(xslt, @doc).to_s(declaration: false)
-    
-#=end
 
     #Rexle.new("<rss version='2.0'>%s</rss>" % xml).xml(pretty: true)
 
@@ -596,6 +600,7 @@ EOF
   end
 
   def findx_by(field, value)
+    #@logger.debug "field: #{field.inspect}, value: #{value.inspect}"
     (load_records; rebuild_doc) if @dirty_flag == true
     r = @doc.root.element("records/*[#{field}=\"#{value}\"]")
     r ? recordx_to_record(r) : nil
@@ -629,17 +634,18 @@ EOF
   end
   
   def display_xml(options={})
-
+    #@logger.debug 'inside display_xml'
     opt = {unescape_html: false}.merge options
     
     state = :external
-    
+    #@logger.debug 'before diry'
     if @dirty_flag == true then
       load_records 
       state = :internal
     end
-    
+    #@logger.debug 'before rebuilt'
     doc = rebuild_doc(state)
+    #@logger.debug 'after rebuild_doc'
     
     if opt[:unescape_html] == true then
       doc.content(opt)
@@ -1008,9 +1014,10 @@ EOF
   end
   
   def openx(s)
-
+    #@logger.debug 'inside openx'
     if s[/</] then # xml
-
+      #@logger.debug 'regular string'
+      #@logger.debug 's: ' + s.inspect
       buffer = s
               
     elsif s[/[\[\(]/] # schema
@@ -1030,6 +1037,7 @@ EOF
         raise DynarexException, 'file not found: ' + s
       end
     end
+    #@logger.debug 'buffer: ' + buffer[0..120]
 
     if buffer then
 
@@ -1037,6 +1045,7 @@ EOF
       @xslt = raw_stylesheet[/href=["']([^"']+)/,1] if raw_stylesheet
       
       @doc = Rexle.new(buffer) unless @doc      
+      #@logger.debug 'openx/@doc : ' + @doc.xml.inspect
     end
     
     return if @doc.root.nil?
@@ -1130,6 +1139,7 @@ EOF
 
     i = @doc.root.xpath('max(records/*/attribute::id)') || 0
     records = @doc.root.xpath('records/*')
+    #@logger.debug 'records: ' + records.inspect
     records = records.take @limit if @limit
 
     recs = records #jr160315 (order == :descending ? records.reverse : records)
@@ -1161,7 +1171,9 @@ EOF
 
       attributes = row.attributes
       result.merge body[@default_key.to_sym] => attributes.merge({id: id, body: body})
-    end    
+    end
+    #@logger.debug 'a: ' + a.inspect
+    a
 
   end
 

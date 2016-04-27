@@ -1,16 +1,16 @@
 Gem::Specification.new do |s|
   s.name = 'dynarex'
-  s.version = '1.7.2'
+  s.version = '1.7.3'
   s.summary = 'The Dynarex gem can create, read, update or delete rows of Dynarex flavoured XML records.'
   s.authors = ['James Robertson']
   s.files = Dir['lib/dynarex.rb']
   s.add_runtime_dependency('dynarex-import', '~> 0.2', '>=0.2.2')
   s.add_runtime_dependency('rexle-builder', '~> 0.2', '>=0.2.1')
-  s.add_runtime_dependency('rexslt', '~> 0.5', '>=0.5.0')
+  s.add_runtime_dependency('rexslt', '~> 0.6', '>=0.6.3')
   s.add_runtime_dependency('dynarex-xslt', '~> 0.1', '>=0.1.7')
-  s.add_runtime_dependency('recordx', '~> 0.3', '>=0.3.1')
+  s.add_runtime_dependency('recordx', '~> 0.4', '>=0.4.0')
   s.add_runtime_dependency('rxraw-lineparser', '~> 0.2', '>=0.2.0')
-  s.add_runtime_dependency('rowx', '~> 0.4', '>=0.4.3')
+  s.add_runtime_dependency('rowx', '~> 0.5', '>=0.5.0')
   s.add_runtime_dependency('table-formatter', '~> 0.2', '>=0.2.0')
   s.add_runtime_dependency('kvx', '~> 0.5', '>=0.5.11')
   s.signing_key = '../privatekeys/dynarex.pem'
