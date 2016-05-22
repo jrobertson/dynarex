@@ -806,7 +806,13 @@ EOF
       r.each do |x|
 
         attr, val = x.split(/\s*=\s*["']/,2)
-        self.method((attr + '=').to_sym).call(unescape val)
+        name = (attr + '=').to_sym
+        
+        if self.public_methods.include? name then
+          self.method(name).call(unescape val)
+        else
+          puts "Dynarex: warning: method %s doesn't exist." % [name.inspect]
+        end
       end
 
     end
