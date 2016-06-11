@@ -362,10 +362,10 @@ EOF
     raw_buffer, type = RXFHelper.read(x)
 
     if raw_buffer.is_a? String then
-      buffer = raw_buffer.clone
-      buffer = yield if block_given?          
 
+      buffer = block_given? ? yield(raw_buffer) : raw_buffer.clone
       string_parse buffer
+      
     else
       foreign_import x
     end
