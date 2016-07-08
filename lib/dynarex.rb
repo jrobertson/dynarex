@@ -26,7 +26,7 @@ end
 class Dynarex
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :linked,
-      :order, :type, :limit, :xslt
+      :order, :type, :limit, :xslt, :json_out
   
   
 #Create a new dynarex document from 1 of the following options:
@@ -37,17 +37,20 @@ class Dynarex
 #* an XML string
 #    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
 
-  def initialize(rawx=nil, opt={})
+  def initialize(rawx=nil, username: nil, password: nil, schema: nil, 
+                 default_key: nil, json_out: true)
 
     #File.write '/tmp/d.log',''
-    #@logger  = Logger.new '/tmp/d.log','daily'
+    @log  = Logger.new File.expand_path('~/dx.log'),'daily'
     #@logger.debug 'inside intialize'
-    @opt = {username: nil, password: nil}.merge opt
+    @username, @password, @schema, @default_key, @json_out = username, 
+        password, schema, default_key, json_out
     @delimiter = ''
     @spaces_delimited = false
     @order = 'ascending'
     @limit = nil
     @records, @flat_records = [], []
+    @json_out = json_out
 
     openx(rawx.clone) if rawx
     #@logger.debug 'doc: ' + @doc.xml.inspect
@@ -221,6 +224,8 @@ class Dynarex
   end
   
   def to_s
+    
+    @log.debug 'inside to_s'
 
 xsl_buffer =<<EOF
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
@@ -246,7 +251,9 @@ EOF
       sumry = summary_fields.map {|x| x.strip!; x + ': ' + \
                                      self.summary[x.to_sym]}.join("\n") + "\n"
     end
-
+    
+    @log.debug 'before @raw_header'
+    
     if @raw_header then
       declaration = @raw_header
     else
@@ -266,6 +273,8 @@ EOF
     end
 
     header = declaration + sumry
+    
+    @log.debug 'after header'
 
     if self.summary[:rawdoc_type] == 'rowx' then
       a = self.fields.map do |field|
@@ -304,15 +313,18 @@ EOF
       header + tfo.display
 
     else
-      
+      @log.debug 'inside else'
       format_mask = self.format_mask
       format_mask.gsub!(/\[[^!\]]+\]/) {|x| x[1] }
       xslt_format = format_mask.gsub(/\s(?=\[!\w+\])/,'<xsl:text> </xsl:text>')
         .gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
         
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
-      
+      @log.debug 'before Rexslt'
+      File.write 'test.xsl', xsl_buffer
+      File.write 'test.xml', @doc.xml
       out = Rexslt.new(xsl_buffer, @doc).to_s
+      @log.debug 'after Rexslt'
       header + "\n" + out
     end
 
@@ -350,6 +362,7 @@ EOF
     xml = display_xml(opt)
     buffer = block_given? ? yield(xml) : xml
     File.write filepath, buffer
+    File.write(filepath.sub(/\.xml$/,'.json'), self.to_json) if @json_out
   end
   
 #Parses 1 or more lines of text to create or update existing records.
@@ -1031,14 +1044,14 @@ EOF
       dynarex_new(s)
               
     elsif s[/^https?:\/\//] then  # url
-      buffer, _ = RXFHelper.read s, {username: @opt[:username], password: @opt[:password]}
+      buffer, _ = RXFHelper.read s, {username: @username, password: @password}
     else # local file
       @local_filepath = s
       
       if File.exists? s then 
         buffer = File.read s
-      elsif @opt[:schema]
-        dynarex_new @opt[:schema], default_key: @opt[:default_key]
+      elsif @schema
+        dynarex_new @schema, default_key: @default_key
       else
         raise DynarexException, 'file not found: ' + s
       end
