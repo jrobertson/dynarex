@@ -40,9 +40,7 @@ class Dynarex
   def initialize(rawx=nil, username: nil, password: nil, schema: nil, 
                  default_key: nil, json_out: true)
 
-    #File.write '/tmp/d.log',''
-    @log  = Logger.new File.expand_path('~/dx.log'),'daily'
-    #@logger.debug 'inside intialize'
+
     @username, @password, @schema, @default_key, @json_out = username, 
         password, schema, default_key, json_out
     @delimiter = ''
@@ -53,7 +51,6 @@ class Dynarex
     @json_out = json_out
 
     openx(rawx.clone) if rawx
-    #@logger.debug 'doc: ' + @doc.xml.inspect
 
   end
 
@@ -225,8 +222,6 @@ class Dynarex
   
   def to_s
     
-    @log.debug 'inside to_s'
-
 xsl_buffer =<<EOF
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
 <xsl:output encoding="UTF-8"
@@ -252,8 +247,6 @@ EOF
                                      self.summary[x.to_sym]}.join("\n") + "\n"
     end
     
-    @log.debug 'before @raw_header'
-    
     if @raw_header then
       declaration = @raw_header
     else
@@ -273,8 +266,6 @@ EOF
     end
 
     header = declaration + sumry
-    
-    @log.debug 'after header'
 
     if self.summary[:rawdoc_type] == 'rowx' then
       a = self.fields.map do |field|
@@ -300,7 +291,7 @@ EOF
       xslt_format = a.join      
 
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
-      File.write '/home/james/liveblog2.xsl', xsl_buffer      
+
       out = Rexslt.new(xsl_buffer, @doc).to_s
       
       header + "--#\n" + out
@@ -313,18 +304,16 @@ EOF
       header + tfo.display
 
     else
-      @log.debug 'inside else'
+
       format_mask = self.format_mask
       format_mask.gsub!(/\[[^!\]]+\]/) {|x| x[1] }
       xslt_format = format_mask.gsub(/\s(?=\[!\w+\])/,'<xsl:text> </xsl:text>')
         .gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
         
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
-      @log.debug 'before Rexslt'
-      File.write 'test.xsl', xsl_buffer
-      File.write 'test.xml', @doc.xml
+
       out = Rexslt.new(xsl_buffer, @doc).to_s
-      @log.debug 'after Rexslt'
+
       header + "\n" + out
     end
 
