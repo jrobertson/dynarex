@@ -360,7 +360,17 @@ EOF
 
     @dirty_flag = true
     
-    (x.each {|record| self.create record }; return self) if x.is_a? Array
+    if x.is_a? Array then
+      
+      unless @schema then
+        cols = x.first.keys.map {|c| c == 'id' ? 'uid' : c} 
+        self.schema = "items/item(%s)" % cols.join(', ')
+      end
+        
+      x.each {|record| self.create record }
+      return self 
+      
+    end
     raw_buffer, type = RXFHelper.read(x)
 
     if raw_buffer.is_a? String then
