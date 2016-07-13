@@ -17,6 +17,7 @@ require 'ostruct'
 require 'table-formatter'
 #require 'rxfhelper'
 require 'kvx'
+require 'json'
 
 
 class DynarexException < Exception
