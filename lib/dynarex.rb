@@ -221,7 +221,7 @@ class Dynarex
     pretty ? JSON.pretty_generate(h) : h.to_json
   end
   
-  def to_s
+  def to_s(header: false, delimiter: @delimiter)
     
 xsl_buffer =<<EOF
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
@@ -255,7 +255,7 @@ EOF
       smry_fields = %i(schema)              
       smry_fields << :order if self.summary[:order] == 'descending'
       
-      if self.delimiter.length > 0 then
+      if delimiter.length > 0 then
         smry_fields << :delimiter 
       else
         smry_fields << :format_mask unless self.summary[:rawdoc_type] == 'rowx'
@@ -266,7 +266,7 @@ EOF
       declaration = %Q(<?dynarex %s?>\n) % s
     end
 
-    header = declaration + sumry
+    docheader = declaration + sumry
 
     if self.summary[:rawdoc_type] == 'rowx' then
       a = self.fields.map do |field|
@@ -280,7 +280,7 @@ EOF
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
       out = Rexslt.new(xsl_buffer, @doc).to_s
       
-      header + "\n--+\n" + out
+      docheader + "\n--+\n" + out
     elsif self.summary[:rawdoc_type] == 'sectionx' then  
       
       a = (self.fields - [:uid, 'uid']).map do |field|
@@ -295,14 +295,14 @@ EOF
 
       out = Rexslt.new(xsl_buffer, @doc).to_s
       
-      header + "--#\n" + out
+      docheader + "--#\n" + out
       
     elsif self.delimiter.length > 0 then
 
       tfo = TableFormatter.new border: false, wrap: false, \
                                                   divider: self.delimiter
       tfo.source = self.to_h.map{|x| x.values}      
-      header + tfo.display
+      docheader + tfo.display
 
     else
 
@@ -315,7 +315,7 @@ EOF
 
       out = Rexslt.new(xsl_buffer, @doc).to_s
 
-      header + "\n" + out
+      header ? docheader + "\n" + out : out
     end
 
   end
@@ -393,7 +393,7 @@ EOF
 #  dynarex.create name: Bob, age: 52
 
   def create(obj, id: nil, custom_attributes: {})
-    
+
     raise 'Dynarex#create(): input error: no arg provided' unless obj
     
     case obj.class.to_s.downcase.to_sym    
