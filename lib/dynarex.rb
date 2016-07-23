@@ -221,7 +221,7 @@ class Dynarex
     pretty ? JSON.pretty_generate(h) : h.to_json
   end
   
-  def to_s(header: false, delimiter: @delimiter)
+  def to_s(header: true, delimiter: @delimiter)
     
 xsl_buffer =<<EOF
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
