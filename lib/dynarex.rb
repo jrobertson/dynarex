@@ -23,7 +23,6 @@ require 'json'
 class DynarexException < Exception
 end
 
-
 class DynarexRecordset < Array
   
   def initialize(a, caller=nil)
@@ -317,7 +316,7 @@ EOF
 
       out = Rexslt.new(xsl_buffer, @doc).to_s
       
-      docheader + "--#\n" + out
+      header ? docheader + "--#\n" + out : out
       
     elsif self.delimiter.length > 0 then
 
