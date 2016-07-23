@@ -24,6 +24,26 @@ class DynarexException < Exception
 end
 
 
+class DynarexRecordset < Array
+  
+  def initialize(a, caller=nil)
+    super(a)
+    @caller = caller
+  end
+  
+  def reject!()
+    
+    a = self.to_a.clone
+    a2 = super
+    a3 = a - a2
+   
+    @caller.delete  a3.map(&:id)
+    self
+  end
+  
+end
+
+
 class Dynarex
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :linked,
@@ -62,7 +82,8 @@ class Dynarex
   end
 
   def all()
-    @doc.root.xpath("records/*").map {|x| recordx_to_record x}
+    a = @doc.root.xpath("records/*").map {|x| recordx_to_record x}
+    DynarexRecordset.new(a, self)
   end
   
   def clone()
@@ -437,8 +458,14 @@ EOF
 #Updates a record from an id and a hash containing field name and field value.
 #  dynarex.update 4, name: Jeff, age: 38  
   
-  def update(id, params={})
+  def update(id, obj)
 
+    params = if obj.is_a? Hash then
+      obj
+    elsif obj.is_a? RecordX
+      obj.to_h
+    end
+    
     fields = capture_fields(params)
 
     # for each field update each record field
@@ -457,7 +484,9 @@ EOF
 #Delete a record.
 #  dyarex.delete 3      # deletes record with id 3
   
-  def delete(x)        
+  def delete(x)    
+
+    return x.each {|id| self.delete id} if x.is_a? Array
 
     if x.to_i.to_s == x.to_s and x[/[0-9]/] then
       @doc.root.delete("records/*[@id='#{x}']")
@@ -491,6 +520,10 @@ EOF
 
   def record_exists?(id)
     !@doc.root.element("records/*[@id='#{id}']").nil?
+  end
+  
+  def refresh()
+    @dirty_flag = true
   end
   
   # used internally by to_rss()
