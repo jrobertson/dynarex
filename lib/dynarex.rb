@@ -35,6 +35,7 @@ class DynarexRecordset < Array
     
     a = self.to_a.clone
     a2 = super
+    return nil unless a2
     a3 = a - a2
    
     @caller.delete  a3.map(&:id)
