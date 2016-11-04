@@ -341,9 +341,9 @@ EOF
 
   end
 
-  def to_table(fields: nil)
+  def to_table(fields: nil, markdown: false)
     
-    tfo = TableFormatter.new
+    tfo = TableFormatter.new markdown: markdown
     a = self.to_h
     
     rows = a.map do |h| 
