@@ -229,8 +229,11 @@ class Dynarex
   end
 
   def to_html(domain: '')
-    xsl_buffer = RXFHelper.read(domain + @xslt).first
+
+    h = {username: @username, password: @password}
+    xsl_buffer = RXFHelper.read(domain + @xslt, h).first
     Rexslt.new(xsl_buffer, @doc).to_s
+
   end      
   
   def to_json(pretty: false)
