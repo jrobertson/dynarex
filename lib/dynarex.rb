@@ -558,6 +558,14 @@ EOF
     xslt    
     
   end
+  
+  def filter(&blk)
+    
+    dx = Dynarex.new @schema
+    self.all.select(&blk).each {|x| dx.create x}
+    dx
+    
+  end
 
   def to_xslt(opt={})    
 
