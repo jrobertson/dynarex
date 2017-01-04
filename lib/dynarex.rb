@@ -506,9 +506,10 @@ EOF
     @doc.root.element x
   end    
   
-  def sort_by!(&element_blk)
+  def sort_by!(field=nil, &element_blk)
 
-    r = sort_records_by! &element_blk
+    blk = field ? ->(x){ x.text(field.to_s).to_s} : element_blk
+    r = sort_records_by! &blk
     @dirty_flag = true    
     r
 
