@@ -246,7 +246,7 @@ class Dynarex
   end
   
   def to_s(header: true, delimiter: @delimiter)
-    
+
 xsl_buffer =<<EOF
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
 <xsl:output encoding="UTF-8"
@@ -332,8 +332,10 @@ EOF
 
       format_mask = self.format_mask
       format_mask.gsub!(/\[[^!\]]+\]/) {|x| x[1] }
-      xslt_format = format_mask.gsub(/\s(?=\[!\w+\])/,'<xsl:text> </xsl:text>')
-        .gsub(/\[!(\w+)\]/, '<xsl:value-of select="\1"/>')
+
+      s1, s2 = '<xsl:text>', '</xsl:text>'
+      xslt_format = s1 + format_mask\
+          .gsub(/(?:\[!(\w+)\])/, s2 + '<xsl:value-of select="\1"/>' + s1) + s2
         
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
 
