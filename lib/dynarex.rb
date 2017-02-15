@@ -121,6 +121,11 @@ class Dynarex
   def fields
     @fields
   end
+  
+  def first
+    r = @doc.root.element("records/*")
+    r ? recordx_to_record(r) : nil  
+  end
 
   def format_mask=(s)
     @format_mask = s
@@ -1337,7 +1342,8 @@ XSL
     h = {recordx_type: 'dynarex'}
     
     @doc.root.xpath('summary/*').inject(h) do |r,node|
-      r.merge node.name.to_s.to_sym => node.text.to_s
+      r.merge node.name.to_s.to_sym => 
+            node.text ? node.text.unescape : node.text.to_s
     end
   end
 
