@@ -300,7 +300,7 @@ EOF
     if self.summary[:rawdoc_type] == 'rowx' then
       a = self.fields.map do |field|
   "<xsl:if test=\"%s != ''\">
-<xsl:text>\n</xsl:text>%s: <xsl:value-of select='%s'/>
+<xsl:text>\n</xsl:text>%s:<xsl:text> </xsl:text><xsl:value-of select='%s'/>
   </xsl:if>" % ([field]*3)
       end
 
