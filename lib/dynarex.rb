@@ -237,7 +237,7 @@ class Dynarex
 
     h = {username: @username, password: @password}
     xsl_buffer = RXFHelper.read(domain + @xslt, h).first
-    Rexslt.new(xsl_buffer, @doc).to_s
+    Rexslt.new(xsl_buffer, self.to_doc).to_s
 
   end      
   
