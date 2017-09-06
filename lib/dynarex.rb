@@ -351,19 +351,15 @@ EOF
 
   end
 
-  def to_table(fields: nil, markdown: false)
+  def to_table(fields: nil, markdown: false, innermarkdown: false, heading: true)
     
-    tfo = TableFormatter.new markdown: markdown
-    a = self.to_h
+    tfo = TableFormatter.new markdown: markdown, innermarkdown: innermarkdown
+    tfo.source = self.to_h.map {|h| fields ? fields.map {|x| h[x]} : h.values }
+        
+    raw_headings = self.summary[:headings]
+    fields = raw_headings.split(self.delimiter) unless fields    
+    tfo.labels = (fields ? fields : self.fields.map{|x| x.to_s.capitalize })
     
-    rows = a.map do |h| 
-      
-      fields ? fields.map {|x| h[x]} : h.values
-
-    end
-    
-    tfo.source = rows            
-    tfo.labels = (fields ? fields : a.first.keys).map{|x| x.to_s.capitalize }
     tfo
     
   end
