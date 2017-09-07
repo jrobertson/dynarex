@@ -676,7 +676,8 @@ EOF
     
     h = recordx.attributes
     
-    hash = Hash[*@fields.zip(recordx.xpath("*").map {|x| x.text.to_s}).flatten]
+    hash = Hash[*@fields.zip(recordx.xpath("*")\
+                             .map {|x| x.text.unescape.to_s}).flatten]
     RecordX.new(hash, self, h[:id], h[:created], h[:last_modified])
   end
 
