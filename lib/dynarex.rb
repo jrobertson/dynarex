@@ -41,6 +41,14 @@ class DynarexRecordset < Array
     self
   end
   
+  def index(val)    
+    self.map(&:to_h).index val.to_h
+  end
+  
+  def index_by_id(id)    
+    self.map(&:id).index id
+  end  
+  
 end
 
 
