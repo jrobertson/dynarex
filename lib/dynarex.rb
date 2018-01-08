@@ -67,17 +67,17 @@ class Dynarex
 #    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
 
   def initialize(rawx=nil, username: nil, password: nil, schema: nil, 
-                 default_key: nil, json_out: true)
+                 default_key: nil, json_out: true, debug: false)
 
 
-    @username, @password, @schema, @default_key, @json_out = username, 
-        password, schema, default_key, json_out
+    @username, @password, @schema, @default_key, @json_out, @debug = username, 
+        password, schema, default_key, json_out, debug
+    
     @delimiter = ''
     @spaces_delimited = false
     @order = 'ascending'
     @limit = nil
     @records, @flat_records = [], []
-    @json_out = json_out
 
     openx(rawx.clone) if rawx
 
@@ -785,7 +785,7 @@ EOF
 
         @summary.each do |key,value|
 
-          v = value.gsub('>','&gt;')\
+          v = value.to_s.gsub('>','&gt;')\
             .gsub('<','&lt;')\
             .gsub(/(&\s|&[a-zA-Z\.]+;?)/) {|x| x[-1] == ';' ? x \
                                                       : x.sub('&','&amp;')}
@@ -1157,7 +1157,7 @@ EOF
 
     @fields = @schema[/([^(]+)\)$/,1].split(/\s*,\s*/).map(&:to_sym)
 
-    @fields << @default_key if @default_key and \
+    @fields << @default_key if @default_key and not @default_key.empty? and \
                         !@fields.include? @default_key.to_sym
 
     if @schema and @schema.match(/(\w+)\(([^\)]+)/) then
