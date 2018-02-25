@@ -1101,7 +1101,7 @@ EOF
 
       dynarex_new(s)
               
-    elsif s[/^https?:\/\//] then  # url
+    elsif s[/^(?:http|df)s?:\/\//] then  # url
       buffer, _ = RXFHelper.read s, {username: @username, password: @password}
     else # local file
       @local_filepath = s
