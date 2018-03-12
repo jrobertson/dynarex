@@ -67,13 +67,13 @@ class Dynarex
 #    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
 
   def initialize(rawx=nil, username: nil, password: nil, schema: nil, 
-                 default_key: nil, json_out: true, debug: false)
+              default_key: nil, json_out: true, debug: false, delimiter: ' # ')
 
 
     @username, @password, @schema, @default_key, @json_out, @debug = username, 
         password, schema, default_key, json_out, debug
     
-    @delimiter = ''
+    @delimiter = delimiter
     @spaces_delimited = false
     @order = 'ascending'
     @limit = nil
