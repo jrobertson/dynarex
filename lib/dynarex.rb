@@ -53,6 +53,7 @@ end
 
 
 class Dynarex
+  include RXFHelperModule
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :linked,
       :order, :type, :limit, :xslt, :json_out
@@ -386,8 +387,8 @@ EOF
     @local_filepath = filepath
     xml = display_xml(opt)
     buffer = block_given? ? yield(xml) : xml
-    File.write filepath, buffer
-    File.write(filepath.sub(/\.xml$/,'.json'), self.to_json) if @json_out
+    FileX.write filepath, buffer
+    FileX.write(filepath.sub(/\.xml$/,'.json'), self.to_json) if @json_out
   end
   
 #Parses 1 or more lines of text to create or update existing records.
@@ -1268,9 +1269,13 @@ EOF
     
     a5 = a3.map do |xlines|
     
+      puts 'xlines: ' + xlines.inspect if @debug
+      
       missing_fields = a4 - xlines.scan(/^\w+(?=:)/)
 
       r = xlines.split(/\n(\w+:.*)/m)
+      puts 'r: ' + r.inspect if @debug
+      
       missing_fields.map!{|x| x + ":"}
       key = (abbrv_fields ? @fields[0].to_s[0] : @fields.first.to_s) + ':'
       
@@ -1283,8 +1288,10 @@ EOF
       r.join("\n")
     
     end
-
+    puts 'a5: ' + a5.inspect if @debug
+    
     xml = RowX.new(a5.join("\n").strip, level: 0).to_xml
+    puts 'xml: ' + xml.inspect if @debug
     
     a2 = Rexle.new(xml).root.xpath('item').inject([]) do |r,x|          
 
