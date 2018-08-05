@@ -98,6 +98,10 @@ class Dynarex
   def clone()
     Dynarex.new(self.to_xml)
   end
+  
+  def default_key()
+    self.summary[:default_key]
+  end
 
   def delimiter=(separator)
 
@@ -226,7 +230,6 @@ class Dynarex
     
   end
   
-  alias to_h flat_records
   alias to_a flat_records
   
   # Returns an array snapshot of OpenStruct records
@@ -240,6 +243,29 @@ class Dynarex
   def to_doc  
     (load_records; rebuild_doc) if @dirty_flag == true
     @doc
+  end
+  
+  # Typically uses the 1st field as a key and the remaining fields as the value
+  #
+  def to_h()
+    
+    key = self.default_key.to_sym
+    fields = self.fields() - [key]
+    puts 'fields: ' + fields.inspect if @debug
+    
+    flat_records.inject({}) do |r, h| 
+      
+      puts 'h: ' + h.inspect if @debug
+      
+      value = if h.length == 2 then
+        h[fields[0]].to_s
+      else
+        fields.map {|x| h[x]}        
+      end
+      
+      r.merge(h[key] => value)
+    end
+    
   end
 
   def to_html(domain: '')
