@@ -71,6 +71,7 @@ class Dynarex
               default_key: nil, json_out: true, debug: false, delimiter: ' # ')
 
 
+    puts 'inside Dynarex::initialize' if debug
     @username, @password, @schema, @default_key, @json_out, @debug = username, 
         password, schema, default_key, json_out, debug
     
@@ -278,7 +279,7 @@ class Dynarex
   
   def to_json(pretty: false)
     
-    records = self.to_h
+    records = self.to_a
     summary = self.summary.to_h
 
     h = {summary: summary, records: records}
@@ -365,7 +366,7 @@ EOF
 
       tfo = TableFormatter.new border: false, wrap: false, \
                                                   divider: self.delimiter
-      tfo.source = self.to_h.map{|x| x.values}      
+      tfo.source = self.to_a.map{|x| x.values}      
       docheader + tfo.display
 
     else
@@ -389,7 +390,7 @@ EOF
   def to_table(fields: nil, markdown: false, innermarkdown: false, heading: true)
     
     tfo = TableFormatter.new markdown: markdown, innermarkdown: innermarkdown
-    tfo.source = self.to_h.map {|h| fields ? fields.map {|x| h[x]} : h.values }
+    tfo.source = self.to_a.map {|h| fields ? fields.map {|x| h[x]} : h.values }
         
     raw_headings = self.summary[:headings]
     fields = raw_headings.split(self.delimiter) if raw_headings and fields.nil?
@@ -434,7 +435,7 @@ EOF
       return self 
       
     end
-    raw_buffer, type = RXFHelper.read(x)
+    raw_buffer, type = RXFHelper.read(x, auto: false)
 
     if raw_buffer.is_a? String then
 
@@ -780,7 +781,7 @@ EOF
 
     raw_lines.map do |line|
 
-      buffer = RXFHelper.read(line.chomp).first
+      buffer = RXFHelper.read(line.chomp, auto: false).first
 
       doc = Rexle.new buffer
       
@@ -1129,7 +1130,8 @@ EOF
       dynarex_new(s)
               
     elsif s[/^(?:http|df)s?:\/\//] then  # url
-      buffer, _ = RXFHelper.read s, {username: @username, password: @password}
+      buffer, _ = RXFHelper.read s, {username: @username, 
+                                     password: @password, auto: false}
     else # local file
       @local_filepath = s
       
@@ -1265,7 +1267,8 @@ EOF
         if node then
           text = node.text ? node.text.unescape : ''
 
-          r.merge node.name.to_sym => (text[/^---(?:\s|\n)/] ? YAML.load(text[/^---(?:\s|\n)(.*)/,1]) : text)
+          r.merge node.name.to_sym => (text[/^---(?:\s|\n)/] ? 
+                              YAML.load(text[/^---(?:\s|\n)(.*)/,1]) : text)
         else
           r
         end
