@@ -74,14 +74,19 @@ class Dynarex
     puts 'inside Dynarex::initialize' if debug
     @username, @password, @schema, @default_key, @json_out, @debug = username, 
         password, schema, default_key, json_out, debug
-    
+    puts '@debug: ' + @debug.inspect if debug
     @delimiter = delimiter
     @spaces_delimited = false
     @order = 'ascending'
     @limit = nil
     @records, @flat_records = [], []
 
-    openx(rawx.clone) if rawx
+    if rawx then
+      
+      return import(rawx) if rawx =~ /\.txt$/
+      openx(rawx.clone) 
+      
+    end
 
   end
 
@@ -405,15 +410,23 @@ EOF
     display_xml(opt)
   end
   
-#Save the document to a local file.  
+# Save the document to a file.  
   
   def save(filepath=nil, options={})
-
+    
+    puts 'inside Dynarex::save' if @debug
+    
     opt = {pretty: true}.merge options
     filepath ||= @local_filepath
     @local_filepath = filepath
     xml = display_xml(opt)
     buffer = block_given? ? yield(xml) : xml
+    
+    if @debug then
+      puts 'before write; filepath: ' + filepath.inspect
+      puts 'buffer: ' + buffer.inspect
+    end
+    
     FileX.write filepath, buffer
     FileX.write(filepath.sub(/\.xml$/,'.json'), self.to_json) if @json_out
   end
@@ -457,6 +470,7 @@ EOF
 
   def create(obj, id: nil, custom_attributes: {})
 
+    puts 'inside create' if @debug
     raise 'Dynarex#create(): input error: no arg provided' unless obj
     
     case obj.class.to_s.downcase.to_sym    
@@ -720,7 +734,9 @@ EOF
 
   def hash_create(raw_params={}, id=nil, attr: {})
 
+    puts 'inside hash_create' if @debug
     record = make_record(raw_params, id, attr: attr)
+    puts 'record: '  + record.inspect
     method_name = @order == 'ascending' ? :add : :prepend
     @doc.root.element('records').method(method_name).call record
 
@@ -1132,7 +1148,10 @@ EOF
     elsif s[/^(?:http|df)s?:\/\//] then  # url
       buffer, _ = RXFHelper.read s, {username: @username, 
                                      password: @password, auto: false}
+      @local_filepath = s if s =~ /^dfs:\/\/.*\.xml$/
+      
     else # local file
+      
       @local_filepath = s
       
       if File.exists? s then 
@@ -1144,6 +1163,8 @@ EOF
       end
     end
     #@logger.debug 'buffer: ' + buffer[0..120]
+    
+    return import(buffer) if buffer =~ /^<\?dynarex\b/
 
     if buffer then
 
@@ -1279,6 +1300,8 @@ EOF
       attributes = row.attributes
       result.merge body[@default_key.to_sym] => attributes.merge({id: id, body: body})
     end
+    
+    puts 'records_to_h a: ' + a.inspect if @debug
     #@logger.debug 'a: ' + a.inspect
     a
 
