@@ -127,6 +127,11 @@ class Dynarex
     @format_mask = @format_mask.to_s.gsub(/\s/, separator)
     @summary[:format_mask] = @format_mask
   end
+    
+  def doc
+    (load_records; rebuild_doc) if @dirty_flag == true
+    @doc
+  end  
 
   def foreign_import(options={})
     o = {xml: '', schema: ''}.merge(options)
@@ -244,11 +249,9 @@ class Dynarex
     flat_records.map {|record| OpenStruct.new record }
   end
   
-# Returns all records as a string format specified by the summary format_mask field.  
 
   def to_doc  
-    (load_records; rebuild_doc) if @dirty_flag == true
-    @doc
+    self.doc().clone
   end
   
   # Typically uses the 1st field as a key and the remaining fields as the value
