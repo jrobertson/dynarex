@@ -388,6 +388,7 @@ EOF
         
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
 
+      puts 'xsl_buffer: ' + xsl_buffer if @debug
       out = Rexslt.new(xsl_buffer, @doc).to_s
 
       header ? docheader + "\n" + out : out
@@ -1147,11 +1148,19 @@ EOF
     elsif s[/[\[\(]/] # schema
 
       dynarex_new(s)
-              
-    elsif s[/^(?:http|df)s?:\/\//] then  # url
-      buffer, _ = RXFHelper.read s, {username: @username, 
-                                     password: @password, auto: false}
-      @local_filepath = s if s =~ /^dfs:\/\/.*\.xml$/
+      
+    elsif s[/^https?:\/\//] then  # url
+      buffer, type = RXFHelper.read s, {username: @username, 
+                                     password: @password, auto: false}              
+    elsif s[/^dfs?:\/\//] then      
+      
+      @local_filepath = s      
+
+      if FileX.exists? s then
+        buffer = FileX.read s
+      elsif @schema
+        dynarex_new @schema, default_key: @default_key        
+      end        
       
     else # local file
       
