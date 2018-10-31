@@ -20,6 +20,21 @@ require 'kvx'
 require 'json'
 
 
+module RegGem
+
+  def self.register()
+'
+hkey_gems
+  doctype
+    dynarex
+      require dynarex
+      class Dynarex
+      media_type dynarex
+'      
+  end
+end
+
+
 class DynarexException < Exception
 end
 
@@ -68,12 +83,15 @@ class Dynarex
 #    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
 
   def initialize(rawx=nil, username: nil, password: nil, schema: nil, 
-              default_key: nil, json_out: true, debug: false, delimiter: ' # ')
+              default_key: nil, json_out: true, debug: false, 
+                 delimiter: ' # ', autosave: false)
 
 
     puts 'inside Dynarex::initialize' if debug
     @username, @password, @schema, @default_key, @json_out, @debug = username, 
         password, schema, default_key, json_out, debug
+    @autosave = autosave
+    
     puts '@debug: ' + @debug.inspect if debug
     @delimiter = delimiter
     @spaces_delimited = false
@@ -155,7 +173,7 @@ class Dynarex
     @format_mask = s
     @summary[:format_mask] = @format_mask
   end
-  
+    
   def insert(raw_params)
     record = make_record(raw_params)
     @doc.root.element('records/*').insert_before record
@@ -416,12 +434,12 @@ EOF
   
 # Save the document to a file.  
   
-  def save(filepath=nil, options={})
+  def save(filepath=@local_filepath, options={})
     
     puts 'inside Dynarex::save' if @debug
     
     opt = {pretty: true}.merge options
-    filepath ||= @local_filepath
+
     @local_filepath = filepath
     xml = display_xml(opt)
     buffer = block_given? ? yield(xml) : xml
@@ -489,6 +507,8 @@ EOF
     end
 
     @dirty_flag = true
+    
+    save() if @autosave
 
     self
   end
