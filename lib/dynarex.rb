@@ -436,7 +436,11 @@ EOF
   
   def save(filepath=@local_filepath, options={})
     
-    puts 'inside Dynarex::save' if @debug
+    if @debug then
+      puts 'inside Dynarex::save' 
+      puts 'filepath: '  + filepath.inspect
+
+    end
     
     opt = {pretty: true}.merge options
 
@@ -508,6 +512,7 @@ EOF
 
     @dirty_flag = true
     
+    puts 'before save ' + @autosave.inspect if @debug
     save() if @autosave
 
     self
@@ -551,11 +556,17 @@ EOF
     # for each field update each record field
     record = @doc.root.element("records/#{@record_name}[@id='#{id.to_s}']")    
 
-    fields.each {|k,v| record.element(k.to_s).text = v if v}
+    fields.each do |k,v|
+      puts "updating ... %s = '%s'" % [k,v] if @debug
+      record.element(k.to_s).text = v if v
+    end
+    
     record.add_attribute(last_modified: Time.now.to_s)
 
     @dirty_flag = true
 
+    save() if @autosave
+    
     self
 
   end
