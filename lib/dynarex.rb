@@ -69,6 +69,7 @@ end
 
 class Dynarex
   include RXFHelperModule
+  using ColouredText
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :linked,
       :order, :type, :limit, :xslt, :json_out
@@ -92,7 +93,7 @@ class Dynarex
         password, schema, default_key, json_out, debug
     @autosave = autosave
     
-    puts '@debug: ' + @debug.inspect if debug
+    puts ('@debug: ' + @debug.inspect).debug if debug
     @delimiter = delimiter
     @spaces_delimited = false
     @order = 'ascending'
@@ -584,7 +585,10 @@ EOF
     else
       @doc.delete x
     end
+    
     @dirty_flag = true
+    save() if @autosave
+    
     self
   end
 
