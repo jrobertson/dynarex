@@ -268,6 +268,17 @@ class Dynarex
     flat_records.map {|record| OpenStruct.new record }
   end
   
+  def rm(force: false)
+    
+    if force or all.empty? then
+      FileX.rm @local_filepath if @local_filepath
+      'file ' + @local_filepath + ' deleted'
+    else
+      'unable to rm file: document not empty'
+    end
+    
+  end
+  
 
   def to_doc  
     self.doc().clone
