@@ -85,7 +85,7 @@ class Dynarex
 
   def initialize(rawx=nil, username: nil, password: nil, schema: nil, 
               default_key: nil, json_out: true, debug: false, 
-                 delimiter: ' # ', autosave: false)
+                 delimiter: ' # ', autosave: false, order: 'ascending')
 
 
     puts 'inside Dynarex::initialize' if debug
@@ -96,7 +96,7 @@ class Dynarex
     puts ('@debug: ' + @debug.inspect).debug if debug
     @delimiter = delimiter
     @spaces_delimited = false
-    @order = 'ascending'
+    @order = order
     @limit = nil
     @records, @flat_records = [], []
 
