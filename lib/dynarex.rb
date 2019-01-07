@@ -72,7 +72,7 @@ class Dynarex
   using ColouredText
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :linked,
-      :order, :type, :limit, :xslt, :json_out
+      :order, :type, :limit, :xslt, :json_out, :unique
   
   
 #Create a new dynarex document from 1 of the following options:
@@ -85,13 +85,14 @@ class Dynarex
 
   def initialize(rawx=nil, username: nil, password: nil, schema: nil, 
               default_key: nil, json_out: true, debug: false, 
-                 delimiter: ' # ', autosave: false, order: 'ascending')
+                 delimiter: ' # ', autosave: false, order: 'ascending', 
+                 unique: false)
 
 
     puts 'inside Dynarex::initialize' if debug
-    @username, @password, @schema, @default_key, @json_out, @debug = username, 
-        password, schema, default_key, json_out, debug
-    @autosave = autosave
+    @username, @password, @schema, @default_key, @json_out, @debug = \
+    username,  password, schema, default_key, json_out, debug
+    @autosave, @unique = autosave, unique
     
     puts ('@debug: ' + @debug.inspect).debug if debug
     @delimiter = delimiter
@@ -731,6 +732,12 @@ EOF
     xml
   end
   
+  def unique=(bool)
+    self.summary.merge!({unique: bool})
+    @dirty_flag = true
+    @unique = bool
+  end
+  
   def xpath(x)
     @doc.root.xpath x
   end
@@ -1011,6 +1018,7 @@ EOF
     @summary[:recordx_type] = 'dynarex'
     @summary[:schema] = @schema
     @summary[:format_mask] = @format_mask
+    @summary[:unique] = @unique
        
     raw_lines.shift while raw_lines.first.strip.empty?
 
@@ -1070,7 +1078,17 @@ EOF
       
         a2.compact!
         a3 = a2.compact.map(&:first)
-        add_id(a2) if a3 != a3.uniq 
+        
+        if a3 != a3.uniq then
+          
+          if @unique then
+            raise DynarexException, "Duplicate id found"
+          else
+            add_id(a2) 
+          end
+          
+        end
+        
         a2
       end      
 
