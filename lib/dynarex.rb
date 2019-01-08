@@ -685,6 +685,8 @@ EOF
   
   def to_rss(opt={}, xslt=nil)
     
+    puts 'inside to_rss'.info if @debug
+    
     unless xslt then
             
       h = {limit: 11}.merge(opt)
@@ -698,10 +700,12 @@ EOF
       
       pubdate = @xslt_schema[/pubDate:/]
       xslif = Rexle.new("<xsl:if test='position() &lt; #{h[:limit]}'/>").root
+      
+      
 
       if pubdate.nil? then
-        pubdate = Rexle.new("<pubDate><xsl:value-of select='pubDate'></xsl:value-of></pubDate>").root
-        new_item.add pubdate      
+        pubdate2 = Rexle.new("<pubDate><xsl:value-of select='pubDate'></xsl:value-of></pubDate>").root
+        new_item.add pubdate2      
       end
 
       xslif.add new_item      
@@ -712,7 +716,9 @@ EOF
     end
     
     doc = Rexle.new(self.to_xml)
-
+    
+    puts ('pubdate: ' + pubdate.inspect).debug if @debug
+    
     if pubdate.nil? then
       doc.root.xpath('records/*').each do |x|
         raw_dt = DateTime.parse x.attributes[:created]
@@ -721,8 +727,12 @@ EOF
       end
     end
 
-
-    out = Rexslt.new(xslt, @doc).to_s(declaration: false)
+    puts ('doc: ' + doc.root.xml)if @debug
+    #File.write '/tmp/blog.xml', doc.root.xml
+    puts ('xslt:'  + xslt.inspect) if @debug
+    #File.write '/tmp/blog.xslt', xslt
+    
+    out = Rexslt.new(xslt, doc).to_s(declaration: false)
 
     #Rexle.new("<rss version='2.0'>%s</rss>" % xml).xml(pretty: true)
 
