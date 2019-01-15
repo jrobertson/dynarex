@@ -107,6 +107,8 @@ class Dynarex
       openx(rawx.clone) 
       
     end
+    
+    self.order = @order unless @order.to_sym == :ascending
 
   end
 
@@ -457,7 +459,7 @@ EOF
     
     opt = {pretty: true}.merge options
 
-    @local_filepath = filepath
+    @local_filepath = filepath || 'dx.xml'
     xml = display_xml(opt)
     buffer = block_given? ? yield(xml) : xml
     
@@ -1028,7 +1030,7 @@ EOF
     @summary[:recordx_type] = 'dynarex'
     @summary[:schema] = @schema
     @summary[:format_mask] = @format_mask
-    @summary[:unique] = @unique
+    @summary[:unique] = @unique if @unique
        
     raw_lines.shift while raw_lines.first.strip.empty?
 
@@ -1323,12 +1325,14 @@ EOF
   end  
 
   def load_records
-
+    
+    puts 'inside load_records'.info if @debug
+    
     @dirty_flag = false
     
     if @summary[:order] then
       orderfield = @summary[:order][/(\w+)\s+(?:ascending|descending)/,1] 
-      self.sort_records_by! {|x| x.element(orderfield).text }  if orderfield
+      sort_records_by! {|x| x.element(orderfield).text }  if orderfield
     end
     
     @records = records_to_h
@@ -1343,6 +1347,7 @@ EOF
     @flat_records = @records.values.map{|x| x[:body]}
 
   end
+  
 
   def display()
     puts @doc.to_s
