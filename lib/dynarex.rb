@@ -729,7 +729,7 @@ EOF
       end
     end
 
-    puts ('doc: ' + doc.root.xml)if @debug
+    puts ('doc: ' + doc.root.xml) if @debug
     #File.write '/tmp/blog.xml', doc.root.xml
     puts ('xslt:'  + xslt.inspect) if @debug
     #File.write '/tmp/blog.xslt', xslt
