@@ -284,7 +284,7 @@ class Dynarex
   
 
   def to_doc  
-    self.doc().clone
+    self.clone().doc
   end
   
   # Typically uses the 1st field as a key and the remaining fields as the value
@@ -883,6 +883,8 @@ EOF
   end
   
   def rebuild_doc(state=:internal)
+    
+    puts 'inside rebuild_doc'.info if @debug
 
     reserved_keywords = ( 
                           Object.public_methods | \
@@ -949,6 +951,8 @@ EOF
     end
 
     doc = Rexle.new(a)
+    
+    puts ('@xslt: ' + @xslt.inspect).debug if @debug
     
     if @xslt then
       doc.instructions = [['xml-stylesheet', 
@@ -1292,6 +1296,7 @@ EOF
 
     @default_key ||= e.text('default_key')
     @format_mask = e.text('format_mask')
+    @xslt = e.text('xslt')
 
     @fields = @schema[/([^(]+)\)$/,1].split(/\s*,\s*/).map(&:to_sym)
 
