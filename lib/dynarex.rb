@@ -433,10 +433,12 @@ EOF
     
     tfo = TableFormatter.new markdown: markdown, innermarkdown: innermarkdown
     tfo.source = self.to_a.map {|h| fields ? fields.map {|x| h[x]} : h.values }
-        
-    raw_headings = self.summary[:headings]
-    fields = raw_headings.split(self.delimiter) if raw_headings and fields.nil?
-    tfo.labels = (fields ? fields : self.fields.map{|x| x.to_s.capitalize })
+
+    if heading then
+      raw_headings = self.summary[:headings]
+      fields = raw_headings.split(self.delimiter) if raw_headings and fields.nil?
+      tfo.labels = (fields ? fields : self.fields.map{|x| x.to_s.capitalize })
+    end
     
     tfo
     
