@@ -56,6 +56,10 @@ class DynarexRecordset < Array
     self
   end
   
+  def sum(field)
+    self.inject(0) {|r, x| r + x[field.to_sym][/\d+(\.\d+)?$/].to_f }
+  end
+  
   def index(val)    
     self.map(&:to_h).index val.to_h
   end
@@ -155,6 +159,8 @@ class Dynarex
     @doc
   end  
 
+  # XML import
+  #  
   def foreign_import(options={})
     o = {xml: '', schema: ''}.merge(options)
     h = {xml: o[:xml], schema: @schema, foreign_schema: o[:schema]}
@@ -351,7 +357,7 @@ EOF
     if raw_summary_fields then
       summary_fields = raw_summary_fields.split(',') # .map(&:to_sym) 
       sumry = summary_fields.map {|x| x.strip!; x + ': ' + \
-                                     self.summary[x.to_sym]}.join("\n") + "\n"
+                                     self.summary[x.to_sym]}.join("\n") + "\n\n"
     end
     
     if @raw_header then
@@ -404,11 +410,11 @@ EOF
       header ? docheader + "--#\n" + out : out
       
     elsif self.delimiter.length > 0 then
-
+      puts 'dinddd'
       tfo = TableFormatter.new border: false, wrap: false, \
                                                   divider: self.delimiter
       tfo.source = self.to_a.map{|x| x.values}      
-      docheader + tfo.display
+      docheader + tfo.display.strip
 
     else
 
@@ -926,6 +932,10 @@ EOF
             
             item.keys.each do |key|
               attributes[key] = item[key] || '' unless key == :body
+            end
+            
+            if @record_name.nil? then
+              raise DynarexException, 'record_name can\'t be nil. Check the schema'
             end
             
             xml.send(@record_name, attributes) do
