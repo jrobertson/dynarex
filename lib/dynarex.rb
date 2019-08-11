@@ -104,6 +104,7 @@ class Dynarex
     @order = order
     @limit = nil
     @records, @flat_records = [], []
+    rawx ||= schema if schema
 
     if rawx then
       
@@ -1188,7 +1189,7 @@ EOF
 
   def dynarex_new(s, default_key: nil)
     
-    schema = s
+    @schema = schema = s
     @default_key = default_key if default_key
     
     ptrn = %r((\w+)\[?([^\]]+)?\]?\/(\w+)\(([^\)]+)\))
