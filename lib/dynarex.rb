@@ -358,7 +358,7 @@ EOF
     if raw_summary_fields then
       summary_fields = raw_summary_fields.split(',') # .map(&:to_sym) 
       sumry = summary_fields.map {|x| x.strip!; x + ': ' + \
-                                     self.summary[x.to_sym]}.join("\n") + "\n\n"
+                               self.summary[x.to_sym].to_s}.join("\n") + "\n\n"
     end
     
     if @raw_header then
@@ -387,10 +387,18 @@ EOF
 <xsl:text>\n</xsl:text>%s:<xsl:text> </xsl:text><xsl:value-of select='%s'/>
   </xsl:if>" % ([field]*3)
       end
+      
+      puts ('a: ' + a.inspect).debug if @debug
 
       xslt_format = a.join      
 
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
+      
+      if @debug then
+        File.write '/tmp/foo.xsl', xsl_buffer
+        File.write '/tmp/foo.xml', @doc.xml
+      end
+      
       out = Rexslt.new(xsl_buffer, @doc).to_s
       
       docheader + "\n--+\n" + out
