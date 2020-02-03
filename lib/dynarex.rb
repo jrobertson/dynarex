@@ -90,13 +90,14 @@ class Dynarex
   def initialize(rawx=nil, username: nil, password: nil, schema: nil, 
               default_key: nil, json_out: true, debug: false, 
                  delimiter: ' # ', autosave: false, order: 'ascending', 
-                 unique: false)
+                 unique: false, filepath: nil)
 
 
     puts 'inside Dynarex::initialize' if debug
     @username, @password, @schema, @default_key, @json_out, @debug = \
     username,  password, schema, default_key, json_out, debug
     @autosave, @unique = autosave, unique
+    @local_filepath = filepath
     
     puts ('@debug: ' + @debug.inspect).debug if debug
     @delimiter = delimiter
@@ -397,6 +398,7 @@ EOF
       if @debug then
         File.write '/tmp/foo.xsl', xsl_buffer
         File.write '/tmp/foo.xml', @doc.xml
+        puts 'xsl_buffer: ' + xsl_buffer.inspect
       end
       
       out = Rexslt.new(xsl_buffer, @doc).to_s
@@ -413,6 +415,7 @@ EOF
       xslt_format = a.join      
 
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
+      puts 'xsl_buffer: ' + xsl_buffer.inspect if @debug
 
       out = Rexslt.new(xsl_buffer, @doc).to_s
       
@@ -1059,7 +1062,7 @@ EOF
        
     raw_lines.shift while raw_lines.first.strip.empty?
 
-    lines = case raw_lines.first.chomp
+    lines = case raw_lines.first.rstrip
 
       when '---'
 

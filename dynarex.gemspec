@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'dynarex'
-  s.version = '1.8.21'
+  s.version = '1.8.22'
   s.summary = 'The Dynarex gem creates, reads, updates or delete rows of ' + 
       'Dynarex flavoured XML records.'
   s.authors = ['James Robertson']
