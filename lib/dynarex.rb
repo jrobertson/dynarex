@@ -125,8 +125,11 @@ class Dynarex
   end
 
   def all()
+    
+    refresh! if @dirty_flag
     a = @doc.root.xpath("records/*").map {|x| recordx_to_record x}
     DynarexRecordset.new(a, self)
+    
   end
   
   def clone()
@@ -654,6 +657,10 @@ EOF
   
   def refresh()
     @dirty_flag = true
+  end
+  
+  def refresh!()
+    (load_records; rebuild_doc) if @dirty_flag == true    
   end
   
   # used internally by to_rss()
