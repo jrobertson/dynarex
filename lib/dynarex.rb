@@ -480,6 +480,8 @@ EOF
 
     end
     
+    return unless filepath
+    
     opt = {pretty: true}.merge options
 
     @local_filepath = filepath || 'dx.xml'
