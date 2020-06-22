@@ -329,13 +329,28 @@ class Dynarex
 
   end      
   
-  def to_json(pretty: false)
+  
+  # to_json: pretty is set to true because although the file size is larger, 
+  # the file can be load slightly quicker
+  
+  def to_json(pretty: true)
     
     records = self.to_a
     summary = self.summary.to_h
-
-    h = {summary: summary, records: records}
+            
+    root_name = schema()[/^\w+/]
+    record_name = schema()[/(?<=\/)[^\(]+/]
+    
+    h = {
+      root_name.to_sym =>
+      {
+        summary: @summary,
+        records: @records.map {|_, h| {record_name.to_sym => h} }        
+      }
+    }
+    
     pretty ? JSON.pretty_generate(h) : h.to_json
+       
   end
   
   def to_s(header: true, delimiter: @delimiter)
@@ -834,7 +849,7 @@ EOF
 
     puts 'inside hash_create' if @debug
     record = make_record(raw_params, id, attr: attr)
-    puts 'record: '  + record.inspect
+    puts 'record: '  + record.inspect if @debug
     method_name = @order == 'ascending' ? :add : :prepend
     @doc.root.element('records').method(method_name).call record
 
