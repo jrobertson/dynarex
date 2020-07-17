@@ -1,12 +1,12 @@
 Gem::Specification.new do |s|
   s.name = 'dynarex'
-  s.version = '1.8.25'
+  s.version = '1.8.26'
   s.summary = 'The Dynarex gem creates, reads, updates or delete rows of ' + 
       'Dynarex flavoured XML records.'
   s.authors = ['James Robertson']
   s.files = Dir['lib/dynarex.rb']
   s.add_runtime_dependency('dynarex-import', '~> 0.2', '>=0.2.2')
-  s.add_runtime_dependency('rexle-builder', '~> 1.0', '>=1.0.0')
+  s.add_runtime_dependency('rexle-builder', '~> 1.0', '>=1.0.2')
   s.add_runtime_dependency('rexslt', '~> 0.7', '>=0.7.0')
   s.add_runtime_dependency('dynarex-xslt', '~> 0.1', '>=0.1.7')
   s.add_runtime_dependency('recordx', '~> 0.5', '>=0.5.5')

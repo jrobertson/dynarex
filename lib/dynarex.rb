@@ -745,17 +745,16 @@ EOF
       item.delete
       
       pubdate = @xslt_schema[/pubDate:/]
-      xslif = Rexle.new("<xsl:if test='position() &lt; #{h[:limit]}'/>").root
+      xslif = Rexle.new("<xsl:if test='position() < #{h[:limit]}'/>").root
       
       
-
       if pubdate.nil? then
         pubdate2 = Rexle.new("<pubDate><xsl:value-of select='pubDate'></xsl:value-of></pubDate>").root
         new_item.add pubdate2      
       end
 
       xslif.add new_item      
-      e2.add xslif.root
+      e2.add xslif
       xslt = doc.xml      
 
       xslt
