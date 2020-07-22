@@ -745,7 +745,7 @@ EOF
       item.delete
       
       pubdate = @xslt_schema[/pubDate:/]
-      xslif = Rexle.new("<xsl:if test='position() < #{h[:limit]}'/>").root
+      xslif = Rexle.new("<xsl:if test='position() &lt; #{h[:limit]}'/>").root
       
       
       if pubdate.nil? then
@@ -773,9 +773,9 @@ EOF
     end
 
     puts ('doc: ' + doc.root.xml) if @debug
-    #File.write '/tmp/blog.xml', doc.root.xml
+    File.write '/tmp/blog.xml', doc.root.xml
     puts ('xslt:'  + xslt.inspect) if @debug
-    #File.write '/tmp/blog.xslt', xslt
+    File.write '/tmp/blog.xslt', xslt
     
     out = Rexslt.new(xslt, doc).to_s(declaration: false)
 
