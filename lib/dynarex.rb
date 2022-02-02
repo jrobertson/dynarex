@@ -94,8 +94,8 @@ class Dynarex
 
 
     puts 'inside Dynarex::initialize' if debug
-    @username, @password, @schema, @default_key, @json_out, @debug = \
-    username,  password, schema, default_key, json_out, debug
+    @username, @password, @schema,  = username,  password, schema
+    @default_key, @json_out, @debug = default_key, json_out, debug
     @autosave, @unique = autosave, unique
     @local_filepath = filepath
 
@@ -440,7 +440,7 @@ EOF
       header ? docheader + "--#\n" + out : out
 
     elsif self.delimiter.length > 0 then
-      puts 'dinddd'
+
       tfo = TableFormatter.new border: false, wrap: false, \
                                                   divider: self.delimiter
       tfo.source = self.to_a.map{|x| x.values}
@@ -994,6 +994,9 @@ EOF
               raise DynarexException, 'record_name can\'t be nil. Check the schema'
             end
 
+            puts 'attributes: ' + attributes.inspect if @debug
+            puts '@record_name: ' + @record_name.inspect
+
             xml.send(@record_name, attributes) do
               item[:body].each do |name,value|
 
@@ -1252,6 +1255,9 @@ EOF
     if s.match(ptrn) then
 
       @root_name, raw_summary, record_name, raw_fields = s.match(ptrn).captures
+      reserved = %w(require parent gem)
+
+      raise 'reserved keyword: ' + record_name if reserved.include? record_name
       summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}
 
       if fields.include? 'id' then
@@ -1260,7 +1266,7 @@ EOF
 
       create_find fields
 
-      reserved = %w(require parent)
+
       raise 'reserved keyword' if (fields & reserved).any?
 
     else
