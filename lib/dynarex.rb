@@ -440,7 +440,7 @@ EOF
       header ? docheader + "--#\n" + out : out
 
     elsif self.delimiter.length > 0 then
-
+      puts 'dinddd'
       tfo = TableFormatter.new border: false, wrap: false, \
                                                   divider: self.delimiter
       tfo.source = self.to_a.map{|x| x.values}
@@ -1311,7 +1311,7 @@ EOF
       @local_filepath = s
 
       if FileX.exists? s then
-        buffer = FileX.read s
+        buffer = FileX.read(s).force_encoding("UTF-8")
       elsif @schema
         dynarex_new @schema, default_key: @default_key
       end
