@@ -534,7 +534,7 @@ EOF
     if raw_buffer.is_a? String then
 
       buffer = block_given? ? yield(raw_buffer) : raw_buffer.clone
-      string_parse buffer
+      string_parse buffer.force_encoding('UTF-8')
 
     else
       foreign_import x
