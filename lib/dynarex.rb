@@ -15,7 +15,7 @@ require 'yaml'
 require 'rowx'
 require 'ostruct'
 require 'table-formatter'
-#require 'rxfhelper'
+require 'rxfreader'
 require 'kvx'
 require 'json'
 
@@ -72,7 +72,7 @@ end
 
 
 class Dynarex
-  include RXFHelperModule
+  include RXFReadWriteModule
   using ColouredText
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :linked,
@@ -324,7 +324,7 @@ class Dynarex
   def to_html(domain: '')
 
     h = {username: @username, password: @password}
-    xsl_buffer = RXFHelper.read(domain + @xslt, h).first
+    xsl_buffer = RXFReader.read(domain + @xslt, h).first
     Rexslt.new(xsl_buffer, self.to_doc).to_s
 
   end
@@ -529,7 +529,7 @@ EOF
       return self
 
     end
-    raw_buffer, type = RXFHelper.read(x, auto: false)
+    raw_buffer, type = RXFReader.read(x, auto: false)
 
     if raw_buffer.is_a? String then
 
@@ -930,7 +930,7 @@ EOF
 
     raw_lines.map do |line|
 
-      buffer = RXFHelper.read(line.chomp, auto: false).first
+      buffer = RXFReader.read(line.chomp, auto: false).first
 
       doc = Rexle.new buffer
 
@@ -1304,7 +1304,7 @@ EOF
       dynarex_new(s)
 
     elsif s[/^https?:\/\//] then  # url
-      buffer, type = RXFHelper.read s, {username: @username,
+      buffer, type = RXFReader.read s, {username: @username,
                                      password: @password, auto: false}
     elsif s[/^dfs?:\/\//] then
 
