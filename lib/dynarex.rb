@@ -995,7 +995,7 @@ EOF
             end
 
             puts 'attributes: ' + attributes.inspect if @debug
-            puts '@record_name: ' + @record_name.inspect
+            puts '@record_name: ' + @record_name.inspect if @debug
 
             xml.send(@record_name, attributes) do
               item[:body].each do |name,value|
