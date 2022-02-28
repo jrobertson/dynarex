@@ -1306,7 +1306,7 @@ EOF
     elsif s[/^https?:\/\//] then  # url
       buffer, type = RXFReader.read s, {username: @username,
                                      password: @password, auto: false}
-    elsif s[/^dfs?:\/\//] then
+    elsif s[/^dfs?:\/\//] or RXFReadWrite.fs[0..2] == 'dfs' then
 
       @local_filepath = s
 
