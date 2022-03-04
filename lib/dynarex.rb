@@ -760,6 +760,7 @@ EOF
       xslt
     end
 
+    puts 'before self.to_xml' if @debug
     doc = Rexle.new(self.to_xml)
 
     puts ('pubdate: ' + pubdate.inspect).debug if @debug
@@ -772,17 +773,20 @@ EOF
       end
     end
 
-    puts ('doc: ' + doc.root.xml) if @debug
-    File.write '/tmp/blog.xml', doc.root.xml
-    puts ('xslt:'  + xslt.inspect) if @debug
-    File.write '/tmp/blog.xslt', xslt
+    #puts ('doc: ' + doc.root.xml) if @debug
+    #File.write '/tmp/blog.xml', doc.root.xml
+    #puts ('xslt:'  + xslt.inspect) if @debug
+    #File.write '/tmp/blog.xslt', xslt
 
+    puts 'before Rexslt' if @debug
     out = Rexslt.new(xslt, doc).to_s(declaration: false)
+    puts 'after Rexslt' if @debug
 
     #Rexle.new("<rss version='2.0'>%s</rss>" % xml).xml(pretty: true)
 
     doc = Rexle.new("<rss version='2.0'>%s</rss>" % out.to_s)
     yield( doc ) if block_given?
+    puts 'before doc.xml' if @debug
     xml = doc.xml(pretty: true)
     xml
   end
