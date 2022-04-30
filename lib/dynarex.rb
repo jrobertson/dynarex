@@ -1040,7 +1040,7 @@ EOF
 
   def string_parse(buffer)
 
-    return openx(buffer.clone) if buffer[/<?xml/]
+    return openx(buffer.clone) if buffer[/<\?xml/]
 
     if @spaces_delimited then
       buffer = buffer.lines.map{|x| x.gsub(/\s{2,}/,' # ')}.join
