@@ -512,6 +512,8 @@ EOF
     FileX.write(filepath.sub(/\.xml$/,'.json'), self.to_json) if @json_out
   end
 
+  alias write save
+
 #Parses 1 or more lines of text to create or update existing records.
 
   def parse(x=nil)
