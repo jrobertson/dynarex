@@ -30,7 +30,7 @@ hkey_gems
       require dynarex
       class Dynarex
       media_type dynarex
-'
+'      
   end
 end
 
@@ -39,35 +39,35 @@ class DynarexException < Exception
 end
 
 class DynarexRecordset < Array
-
+  
   def initialize(a, caller=nil)
     super(a)
     @caller = caller
   end
-
+  
   def reject!()
-
+    
     a = self.to_a.clone
     a2 = super
     return nil unless a2
     a3 = a - a2
-
+   
     @caller.delete  a3.map(&:id)
     self
   end
-
+  
   def sum(field)
     self.inject(0) {|r, x| r + x[field.to_sym][/\d+(\.\d+)?$/].to_f }
   end
-
-  def index(val)
+  
+  def index(val)    
     self.map(&:to_h).index val.to_h
   end
-
-  def index_by_id(id)
+  
+  def index_by_id(id)    
     self.map(&:id).index id
-  end
-
+  end  
+  
 end
 
 
@@ -77,8 +77,8 @@ class Dynarex
 
   attr_accessor :format_mask, :delimiter, :xslt_schema, :schema, :linked,
       :order, :type, :limit, :xslt, :json_out, :unique
-
-
+  
+  
 #Create a new dynarex document from 1 of the following options:
 #* a local file path
 #* a URL
@@ -87,9 +87,9 @@ class Dynarex
 #* an XML string
 #    Dynarex.new '<contacts><summary><schema>contacts/contact(name,age,dob)</schema></summary><records/></contacts>'
 
-  def initialize(rawx=nil, username: nil, password: nil, schema: nil,
+  def initialize(rawx=nil, username: nil, password: nil, schema: nil, 
               default_key: nil, json_out: true, debug: false,
-                 delimiter: ' # ', autosave: false, order: 'ascending',
+                 delimiter: ' # ', autosave: false, order: 'ascending', 
                  unique: false, filepath: nil)
 
 
@@ -98,7 +98,7 @@ class Dynarex
     @default_key, @json_out, @debug = default_key, json_out, debug
     @autosave, @unique = autosave, unique
     @local_filepath = filepath
-
+    
     puts ('@debug: ' + @debug.inspect).debug if debug
     @delimiter = delimiter
     @spaces_delimited = false
@@ -108,12 +108,12 @@ class Dynarex
     rawx ||= schema if schema
 
     if rawx then
-
+      
       return import(rawx) if rawx =~ /\.txt$/
       openx(rawx.clone)
 
     end
-
+    
     self.order = @order unless @order.to_sym == :ascending
 
   end
@@ -125,17 +125,17 @@ class Dynarex
   end
 
   def all()
-
+    
     refresh! if @dirty_flag
     a = @doc.root.xpath("records/*").map {|x| recordx_to_record x}
     DynarexRecordset.new(a, self)
-
+    
   end
-
+  
   def clone()
     Dynarex.new(self.to_xml)
   end
-
+  
   def default_key()
     self.summary[:default_key]
   end
@@ -146,10 +146,10 @@ class Dynarex
       @spaces_delimited = true
       separator = ' # '
     end
-
+    
     @delimiter = separator
 
-    if separator.length > 0 then
+    if separator.length > 0 then 
       @summary[:delimiter] = separator
     else
       @summary.delete :delimiter
@@ -158,14 +158,14 @@ class Dynarex
     @format_mask = @format_mask.to_s.gsub(/\s/, separator)
     @summary[:format_mask] = @format_mask
   end
-
+    
   def doc
     (load_records; rebuild_doc) if @dirty_flag == true
     @doc
-  end
+  end  
 
   # XML import
-  #
+  #  
   def foreign_import(options={})
     o = {xml: '', schema: ''}.merge(options)
     h = {xml: o[:xml], schema: @schema, foreign_schema: o[:schema]}
@@ -174,21 +174,21 @@ class Dynarex
     openx(buffer)
     self
   end
-
+  
   def fields
     @fields
   end
-
+  
   def first
     r = @doc.root.element("records/*")
-    r ? recordx_to_record(r) : nil
+    r ? recordx_to_record(r) : nil  
   end
 
   def format_mask=(s)
     @format_mask = s
     @summary[:format_mask] = @format_mask
   end
-
+    
   def insert(raw_params)
     record = make_record(raw_params)
     @doc.root.element('records/*').insert_before record
@@ -198,32 +198,32 @@ class Dynarex
   def inspect()
     "<object #%s>" % [self.object_id]
   end
-
+  
   def linked=(bool)
     @linked = bool == 'true'
   end
-
+    
   def order=(value)
-
-    self.summary.merge!({order: value.to_s})
+    
+    self.summary.merge!({order: value.to_s})    
 
     @order = value.to_s
   end
-
+  
   def recordx_type()
     @summary[:recordx_type]
   end
-
+  
   def schema=(s)
     openx s
   end
-
+  
   def type=(v)
     @order = 'descending' if v == 'feed'
     @type = v
     @summary[:type] = v
   end
-
+  
   # Returns the hash representation of the document summary.
   #
   def summary
@@ -233,29 +233,29 @@ class Dynarex
   # Return a Hash (which can be edited) containing all records.
   #
   def records
-
+    
     load_records if @dirty_flag == true
-
+    
     if block_given? then
       yield(@records)
       rebuild_doc
-      @dirty_flag = true
+      @dirty_flag = true 
     else
       @records
     end
-
+    
   end
-
-  # Returns a ready-only snapshot of records as a simple Hash.
+  
+  # Returns a ready-only snapshot of records as a simple Hash.  
   #
   def flat_records(select: nil)
-
+    
     fields = select
-
+    
     load_records if @dirty_flag == true
 
     if fields then
-
+      
       case fields.class.to_s.downcase.to_sym
       when :string
         field = fields.to_sym
@@ -267,58 +267,58 @@ class Dynarex
         @flat_records.map {|row| fields.inject({})\
                            {|r,x| r.merge(x.to_sym => row[x.to_sym])}}
       end
-
+      
     else
       @flat_records
     end
-
+    
   end
-
+  
   alias to_a flat_records
-
+  
   # Returns an array snapshot of OpenStruct records
   #
   def ro_records
     flat_records.map {|record| OpenStruct.new record }
   end
-
+  
   def rm(force: false)
-
+    
     if force or all.empty? then
       FileX.rm @local_filepath if @local_filepath
       'file ' + @local_filepath + ' deleted'
     else
       'unable to rm file: document not empty'
     end
-
+    
   end
+  
 
-
-  def to_doc
+  def to_doc  
     self.clone().doc
   end
-
+  
   # Typically uses the 1st field as a key and the remaining fields as the value
   #
   def to_h()
-
+    
     key = self.default_key.to_sym
     fields = self.fields() - [key]
     puts 'fields: ' + fields.inspect if @debug
-
-    flat_records.inject({}) do |r, h|
-
+    
+    flat_records.inject({}) do |r, h| 
+      
       puts 'h: ' + h.inspect if @debug
-
+      
       value = if h.length == 2 then
         h[fields[0]].to_s
       else
-        fields.map {|x| h[x]}
+        fields.map {|x| h[x]}        
       end
-
+      
       r.merge(h[key] => value)
     end
-
+    
   end
 
   def to_html(domain: '')
@@ -327,32 +327,32 @@ class Dynarex
     xsl_buffer = RXFReader.read(domain + @xslt, h).first
     Rexslt.new(xsl_buffer, self.to_doc).to_s
 
-  end
-
-
-  # to_json: pretty is set to true because although the file size is larger,
+  end      
+  
+  
+  # to_json: pretty is set to true because although the file size is larger, 
   # the file can be load slightly quicker
-
+  
   def to_json(pretty: true)
-
+    
     records = self.to_a
     summary = self.summary.to_h
-
+            
     root_name = schema()[/^\w+/]
     record_name = schema()[/(?<=\/)[^\(]+/]
-
+    
     h = {
       root_name.to_sym =>
       {
         summary: @summary,
-        records: @records.map {|_, h| {record_name.to_sym => h} }
+        records: @records.map {|_, h| {record_name.to_sym => h} }        
       }
     }
-
+    
     pretty ? JSON.pretty_generate(h) : h.to_json
-
+       
   end
-
+  
   def to_s(header: true, delimiter: @delimiter)
 
 xsl_buffer =<<EOF
@@ -373,22 +373,22 @@ EOF
 
     raw_summary_fields = self.summary[:schema][/^\w+\[([^\]]+)\]/,1]
     sumry = ''
-
+    
     if raw_summary_fields then
-      summary_fields = raw_summary_fields.split(',') # .map(&:to_sym)
+      summary_fields = raw_summary_fields.split(',') # .map(&:to_sym) 
       sumry = summary_fields.map {|x| x.strip!; x + ': ' + \
                                self.summary[x.to_sym].to_s}.join("\n") + "\n\n"
     end
-
+    
     if @raw_header then
       declaration = @raw_header
     else
 
-      smry_fields = %i(schema)
+      smry_fields = %i(schema)              
       smry_fields << :order if self.summary[:order] == 'descending'
-
+      
       if delimiter.length > 0 then
-        smry_fields << :delimiter
+        smry_fields << :delimiter 
       else
         smry_fields << :format_mask unless self.summary[:rawdoc_type] == 'rowx'
       end
@@ -406,44 +406,44 @@ EOF
 <xsl:text>\n</xsl:text>%s:<xsl:text> </xsl:text><xsl:value-of select='%s'/>
   </xsl:if>" % ([field]*3)
       end
-
+      
       puts ('a: ' + a.inspect).debug if @debug
 
-      xslt_format = a.join
+      xslt_format = a.join      
 
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
-
+      
       if @debug then
         File.write '/tmp/foo.xsl', xsl_buffer
         File.write '/tmp/foo.xml', @doc.xml
         puts 'xsl_buffer: ' + xsl_buffer.inspect
       end
-
+      
       out = Rexslt.new(xsl_buffer, @doc).to_s
-
+      
       docheader + "\n--+\n" + out
-    elsif self.summary[:rawdoc_type] == 'sectionx' then
-
+    elsif self.summary[:rawdoc_type] == 'sectionx' then  
+      
       a = (self.fields - [:uid, 'uid']).map do |field|
   "<xsl:if test=\"%s != ''\">
 <xsl:text>\n</xsl:text><xsl:value-of select='%s'/>
   </xsl:if>" % ([field]*2)
       end
 
-      xslt_format = a.join
+      xslt_format = a.join      
 
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
       puts 'xsl_buffer: ' + xsl_buffer.inspect if @debug
 
       out = Rexslt.new(xsl_buffer, @doc).to_s
-
+      
       header ? docheader + "--#\n" + out : out
-
+      
     elsif self.delimiter.length > 0 then
       puts 'dinddd'
       tfo = TableFormatter.new border: false, wrap: false, \
                                                   divider: self.delimiter
-      tfo.source = self.to_a.map{|x| x.values}
+      tfo.source = self.to_a.map{|x| x.values}      
       docheader + tfo.display.strip
 
     else
@@ -454,7 +454,7 @@ EOF
       s1, s2 = '<xsl:text>', '</xsl:text>'
       xslt_format = s1 + format_mask\
           .gsub(/(?:\[!(\w+)\])/, s2 + '<xsl:value-of select="\1"/>' + s1) + s2
-
+        
       xsl_buffer.sub!(/\[!regex_values\]/, xslt_format)
 
       puts 'xsl_buffer: ' + xsl_buffer if @debug
@@ -466,7 +466,7 @@ EOF
   end
 
   def to_table(fields: nil, markdown: false, innermarkdown: false, heading: true)
-
+    
     tfo = TableFormatter.new markdown: markdown, innermarkdown: innermarkdown
     tfo.source = self.to_a.map {|h| fields ? fields.map {|x| h[x]} : h.values }
 
@@ -475,61 +475,61 @@ EOF
       fields = raw_headings.split(self.delimiter) if raw_headings and fields.nil?
       tfo.labels = (fields ? fields : self.fields.map{|x| x.to_s.capitalize })
     end
-
+    
     tfo
-
+    
   end
-
-  def to_xml(opt={})
+  
+  def to_xml(opt={}) 
     opt = {pretty: true} if opt == :pretty
     display_xml(opt)
   end
-
-# Save the document to a file.
-
+  
+# Save the document to a file.  
+  
   def save(filepath=@local_filepath, options={})
-
+    
     if @debug then
-      puts 'inside Dynarex::save'
+      puts 'inside Dynarex::save' 
       puts 'filepath: '  + filepath.inspect
 
     end
-
+    
     return unless filepath
-
+    
     opt = {pretty: true}.merge options
 
     @local_filepath = filepath || 'dx.xml'
     xml = display_xml(opt)
     buffer = block_given? ? yield(xml) : xml
-
+    
     if @debug then
       puts 'before write; filepath: ' + filepath.inspect
       puts 'buffer: ' + buffer.inspect
     end
-
+    
     FileX.write filepath, buffer
     FileX.write(filepath.sub(/\.xml$/,'.json'), self.to_json) if @json_out
   end
 
   alias write save
-
+  
 #Parses 1 or more lines of text to create or update existing records.
 
   def parse(x=nil)
 
     @dirty_flag = true
-
+    
     if x.is_a? Array then
-
+      
       unless @schema then
-        cols = x.first.keys.map {|c| c == 'id' ? 'uid' : c}
+        cols = x.first.keys.map {|c| c == 'id' ? 'uid' : c} 
         self.schema = "items/item(%s)" % cols.join(', ')
       end
-
+        
       x.each {|record| self.create record }
-      return self
-
+      return self 
+      
     end
     raw_buffer, type = RXFReader.read(x, auto: false)
 
@@ -537,15 +537,15 @@ EOF
 
       buffer = block_given? ? yield(raw_buffer) : raw_buffer.clone
       string_parse buffer.force_encoding('UTF-8')
-
+      
     else
       foreign_import x
     end
+    
+  end  
 
-  end
 
-
-  alias import parse
+  alias import parse  
 
 #Create a record from a hash containing the field name, and the field value.
 #  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
@@ -555,8 +555,8 @@ EOF
 
     puts 'inside create' if @debug
     raise 'Dynarex#create(): input error: no arg provided' unless obj
-
-    case obj.class.to_s.downcase.to_sym
+    
+    case obj.class.to_s.downcase.to_sym    
     when :hash
       hash_create  obj, id, attr: custom_attributes
     when :string
@@ -568,7 +568,7 @@ EOF
     end
 
     @dirty_flag = true
-
+    
     puts 'before save ' + @autosave.inspect if @debug
     save() if @autosave
 
@@ -577,13 +577,13 @@ EOF
 
 #Create a record from a string, given the dynarex document contains a format mask.
 #  dynarex = Dynarex.new 'contacts/contact(name,age,dob)'
-#  dynarex.create_from_line 'Tracy 37 15-Jun-1972'
-
+#  dynarex.create_from_line 'Tracy 37 15-Jun-1972'  
+  
   def create_from_line(line, id=nil, attr: '')
     t = @format_mask.to_s.gsub(/\[!(\w+)\]/, '(.*)').sub(/\[/,'\[')\
                                                                 .sub(/\]/,'\]')
     line.match(/#{t}/).captures
-
+    
     a = line.match(/#{t}/).captures
     h = Hash[@fields.zip(a)]
     create h
@@ -598,8 +598,8 @@ EOF
 
 
 #Updates a record from an id and a hash containing field name and field value.
-#  dynarex.update 4, name: Jeff, age: 38
-
+#  dynarex.update 4, name: Jeff, age: 38  
+  
   def update(id, obj)
 
     params = if obj.is_a? Hash then
@@ -607,32 +607,32 @@ EOF
     elsif obj.is_a? RecordX
       obj.to_h
     end
-
+    
     fields = capture_fields(params)
 
     # for each field update each record field
-    record = @doc.root.element("records/#{@record_name}[@id='#{id.to_s}']")
+    record = @doc.root.element("records/#{@record_name}[@id='#{id.to_s}']")    
 
     fields.each do |k,v|
       puts "updating ... %s = '%s'" % [k,v] if @debug
       record.element(k.to_s).text = v if v
     end
-
+    
     record.add_attribute(last_modified: Time.now.to_s)
 
     @dirty_flag = true
 
     save() if @autosave
-
+    
     self
 
   end
 
-
+  
 #Delete a record.
 #  dyarex.delete 3      # deletes record with id 3
-
-  def delete(x)
+  
+  def delete(x)    
 
     return x.each {|id| self.delete id} if x.is_a? Array
 
@@ -641,137 +641,145 @@ EOF
     else
       @doc.delete x
     end
-
+    
     @dirty_flag = true
     save() if @autosave
-
+    
     self
   end
 
   def element(x)
     @doc.root.element x
-  end
-
+  end    
+  
   def sort_by!(field=nil, &element_blk)
 
     blk = field ? ->(x){ x.text(field.to_s).to_s} : element_blk
     r = sort_records_by! &blk
-    @dirty_flag = true
+    @dirty_flag = true    
     r
 
-  end
+  end  
 
-
+  
   def record(id)
-    e = @doc.root.element("records/*[@id='#{id}']")
+    e = @doc.root.element("records/*[@id='#{id}']")    
     recordx_to_record e if e
   end
-
+  
   alias find record
   alias find_by_id record
 
   def record_exists?(id)
     !@doc.root.element("records/*[@id='#{id}']").nil?
   end
-
+  
   def refresh()
     @dirty_flag = true
   end
-
+  
   def refresh!()
-    (load_records; rebuild_doc) if @dirty_flag == true
+    (load_records; rebuild_doc) if @dirty_flag == true    
   end
-
+  
   # used internally by to_rss()
   #
   def rss_xslt(opt={})
-
+  
     h = {limit: 11}.merge(opt)
     doc = Rexle.new(self.to_xslt)
     e = doc.element('//xsl:apply-templates[2]')
-
+    
     e2 = doc.root.element('xsl:template[3]')
     item = e2.element('item')
     new_item = item.deep_clone
     item.delete
-
+    
     pubdate = @xslt_schema[/pubDate:/]
     xslif = Rexle.new("<xsl:if test='position() &lt; #{h[:limit]}'/>").root
 
     if pubdate.nil? then
       pubdate = Rexle.new("<pubDate><xsl:value-of select='pubDate'>" + \
                               "</xsl:value-of></pubDate>").root
-      new_item.add pubdate
+      new_item.add pubdate      
     end
 
-    xslif.add new_item
+    xslif.add new_item      
     e2.add xslif.root
-    xslt = doc.xml
+    xslt = doc.xml      
 
-    xslt
-
+    xslt    
+    
   end
-
+  
   def filter(&blk)
-
+    
     dx = Dynarex.new @schema
     self.all.select(&blk).each {|x| dx.create x}
     dx
-
+    
   end
 
-  def to_xslt(opt={})
+  def to_xslt(opt={})    
 
     h = {limit: -1}.merge(opt)
     @xslt_schema = @xslt_schema || self.summary[:xslt_schema]
     raise 'to_xslt(): xslt_schema nil' unless @xslt_schema
+    puts 'to_xslt: ' + [@schema, @xslt_schema].inspect if @debug
 
     xslt = DynarexXSLT.new(schema: @schema, xslt_schema: @xslt_schema ).to_xslt
 
     return xslt
   end
-
+  
   def to_rss(opt={}, xslt=nil)
-
+    
     puts 'inside to_rss'.info if @debug
+    puts 'xslt: ' + xslt.inspect if @debug
 
     unless xslt then
-
+            
       h = {limit: 11}.merge(opt)
+      puts 'self.to_xslt:' + self.to_xslt.inspect if @debug
       doc = Rexle.new(self.to_xslt)
+      puts 'doc: ' + doc.xml if @debug
+      puts 'after xslt doc' if @debug
       e = doc.element('//xsl:apply-templates[2]')
 
       e2 = doc.root.element('xsl:template[3]')
+      puts 'e2:' + e2.inspect if @debug
       item = e2.element('item')
+      puts 'after item' if @debug
       new_item = item.deep_clone
       item.delete
-
+      
       pubdate = @xslt_schema[/pubDate:/]
+
       xslif = Rexle.new("<xsl:if test='position() &lt; #{h[:limit]}'/>").root
-
-
+      
+      
       if pubdate.nil? then
         pubdate2 = Rexle.new("<pubDate><xsl:value-of select='pubDate'></xsl:value-of></pubDate>").root
-        new_item.add pubdate2
+        new_item.add pubdate2      
       end
 
-      xslif.add new_item
+      xslif.add new_item      
       e2.add xslif
-      xslt = doc.xml
+      xslt = doc.xml      
 
       xslt
     end
-
+    
     puts 'before self.to_xml' if @debug
     doc = Rexle.new(self.to_xml)
-
+    
     puts ('pubdate: ' + pubdate.inspect).debug if @debug
-
+    
     if pubdate.nil? then
       doc.root.xpath('records/*').each do |x|
         raw_dt = DateTime.parse x.attributes[:created]
         dt = raw_dt.strftime("%a, %d %b %Y %H:%M:%S %z")
-        x.add Rexle::Element.new('pubDate').add_text dt.to_s
+        x.add Rexle::Element.new('pubDate').add_text dt.to_s 
       end
     end
 
@@ -779,7 +787,7 @@ EOF
     #File.write '/tmp/blog.xml', doc.root.xml
     #puts ('xslt:'  + xslt.inspect) if @debug
     #File.write '/tmp/blog.xslt', xslt
-
+    
     puts 'before Rexslt' if @debug
     out = Rexslt.new(xslt, doc).to_s(declaration: false)
     puts 'after Rexslt' if @debug
@@ -792,23 +800,23 @@ EOF
     xml = doc.xml(pretty: true)
     xml
   end
-
+  
   def unique=(bool)
     self.summary.merge!({unique: bool})
     @dirty_flag = true
     @unique = bool
   end
-
+  
   def xpath(x)
     @doc.root.xpath x
   end
 
   def xslt=(value)
-
+    
     self.summary.merge!({xslt: value})
     @dirty_flag = true
     @xslt = value
-  end
+  end  
 
   private
 
@@ -816,7 +824,7 @@ EOF
     @default_key = :uid
     @summary[:default_key] = 'uid'
     @fields << :uid
-    a.each.with_index{|x,i| x << (i+1).to_s}
+    a.each.with_index{|x,i| x << (i+1).to_s}    
   end
 
   def create_find(fields)
@@ -862,9 +870,9 @@ EOF
   end
 
   def recordx_to_record(recordx)
-
+    
     h = recordx.attributes
-
+    
     records = recordx.xpath("*").map {|x|  x.text ? x.text.unescape.to_s : '' }
     hash = @fields.zip(records).to_h
     RecordX.new(hash, self, h[:id], h[:created], h[:last_modified])
@@ -886,21 +894,21 @@ EOF
     fields.keys.each {|key| fields[key] = params[key.to_sym] if params.has_key? key.to_sym}
     fields
   end
-
+  
   def display_xml(options={})
     #@logger.debug 'inside display_xml'
     opt = {unescape_html: false}.merge options
-
+    
     state = :external
     #@logger.debug 'before diry'
     if @dirty_flag == true then
-      load_records
+      load_records 
       state = :internal
     end
     #@logger.debug 'before rebuilt'
     doc = rebuild_doc(state)
     #@logger.debug 'after rebuild_doc'
-
+    
     if opt[:unescape_html] == true then
       doc.content(opt)
     else
@@ -914,15 +922,15 @@ EOF
     raw_params.merge!(uid: id) if @default_key.to_sym == :uid
     params = Hash[raw_params.keys.map(&:to_sym).zip(raw_params.values)]
 
-    fields = capture_fields(params)
+    fields = capture_fields(params)    
     record = Rexle::Element.new @record_name
 
     fields.each do |k,v|
-      element = Rexle::Element.new(k.to_s)
+      element = Rexle::Element.new(k.to_s)              
       element.root.text = v.to_s.gsub('<','&lt;').gsub('>','&gt;') if v
       record.add element if record
     end
-
+    
     attributes = {id: id.to_s, created: Time.now.to_s, last_modified: nil}\
                                                                   .merge attr
     attributes.each {|k,v| record.add_attribute(k, v)}
@@ -939,7 +947,7 @@ EOF
       buffer = RXFReader.read(line.chomp, auto: false).first
 
       doc = Rexle.new buffer
-
+      
       if doc.root.name == 'kvx' then
 
         kvx = Kvx.new doc
@@ -951,17 +959,17 @@ EOF
     end
 
   end
-
+  
   def rebuild_doc(state=:internal)
-
+    
     puts 'inside rebuild_doc'.info if @debug
 
-    reserved_keywords = (
+    reserved_keywords = ( 
                           Object.public_methods | \
                           Kernel.public_methods | \
                           public_methods + [:method_missing]
                         )
-
+    
     xml = RexleBuilder.new
 
     a = xml.send @root_name do
@@ -987,33 +995,33 @@ EOF
         #jr160315records.reverse! if @order == 'descending' and state == :external
 
         xml.records do
-
+           
           records.each do |k, item|
-
+            
             attributes = {}
-
+            
             item.keys.each do |key|
               attributes[key] = item[key] || '' unless key == :body
             end
-
+            
             if @record_name.nil? then
               raise DynarexException, 'record_name can\'t be nil. Check the schema'
             end
-
+            
             puts 'attributes: ' + attributes.inspect if @debug
             puts '@record_name: ' + @record_name.inspect if @debug
 
             xml.send(@record_name, attributes) do
-              item[:body].each do |name,value|
+              item[:body].each do |name,value| 
 
                 if reserved_keywords.include? name then
-                  name = ('._' + name.to_s).to_sym
+                  name = ('._' + name.to_s).to_sym 
                 end
-
+                
                 val = value.send(value.is_a?(String) ? :to_s : :to_yaml)
                 xml.send(name, val.gsub('>','&gt;')\
                   .gsub('<','&lt;')\
-                  .gsub(/(&\s|&[a-zA-Z\.]+;?)/) do |x|
+                  .gsub(/(&\s|&[a-zA-Z\.]+;?)/) do |x| 
                     x[-1] == ';' ? x : x.sub('&','&amp;')
                   end
                 )
@@ -1028,24 +1036,24 @@ EOF
     end
 
     doc = Rexle.new(a)
-
+    
     puts ('@xslt: ' + @xslt.inspect).debug if @debug
-
+    
     if @xslt then
-      doc.instructions = [['xml-stylesheet',
+      doc.instructions = [['xml-stylesheet', 
         "title='XSL_formatting' type='text/xsl' href='#{@xslt}'"]]
     end
 
     return doc if state != :internal
     @doc = doc
-  end
-
+  end  
+  
   def string_parse(buffer)
 
     return openx(buffer.clone) if buffer[/<\?xml/]
 
     if @spaces_delimited then
-      buffer = buffer.lines.map{|x| x.gsub(/\s{2,}/,' # ')}.join
+      buffer = buffer.lines.map{|x| x.gsub(/\s{2,}/,' # ')}.join 
     end
 
     buffer.gsub!("\r",'')
@@ -1062,19 +1070,19 @@ EOF
       raw_stylesheet = buffer.slice!(/<\?xml-stylesheet[^>]+>/)
       @xslt = raw_stylesheet[/href=["']([^"']+)/,1] if raw_stylesheet
       @raw_header = buffer.slice!(/<\?dynarex[^>]+>/) + "\n"
-
+      
       header = @raw_header[/<?dynarex (.*)?>/,1]
 
       r1 = /([\w\-]+\s*\=\s*'[^']*)'/
       r2 = /([\w\-]+\s*\=\s*"[^"]*)"/
 
-      r = header.scan(/#{r1}|#{r2}/).map(&:compact).flatten
+      r = header.scan(/#{r1}|#{r2}/).map(&:compact).flatten      
 
       r.each do |x|
 
         attr, val = x.split(/\s*=\s*["']/,2)
         name = (attr + '=').to_sym
-
+        
         if self.public_methods.include? name then
           self.method(name).call(unescape val)
         else
@@ -1094,7 +1102,7 @@ EOF
     if raw_summary then
 
       a_summary = raw_summary.split(',').map(&:strip)
-
+      
       @summary ||= {}
       raw_lines.shift while raw_lines.first.strip.empty?
 
@@ -1114,7 +1122,7 @@ EOF
     @summary[:schema] = @schema
     @summary[:format_mask] = @format_mask
     @summary[:unique] = @unique if @unique
-
+       
     raw_lines.shift while raw_lines.first.strip.empty?
 
     lines = case raw_lines.first.rstrip
@@ -1124,10 +1132,10 @@ EOF
         yaml = YAML.load raw_lines.join("\n")
 
         yamlize = lambda {|x| (x.is_a? Array) ? x.to_yaml : x}
-
+        
         yprocs = {
           Hash: lambda {|y|
-            y.map do |k,v|
+            y.map do |k,v| 
               procs = {Hash: proc {|x| x.values}, Array: proc {v}}
               values = procs[v.class.to_s.to_sym].call(v).map(&yamlize)
               [k, *values]
@@ -1136,23 +1144,23 @@ EOF
           Array: lambda {|y| y.map {|x2| x2.map(&yamlize)} }
         }
 
-        yprocs[yaml.class.to_s.to_sym].call yaml
-
+        yprocs[yaml.class.to_s.to_sym].call yaml      
+        
       when '--+'
 
         rowx(raw_lines)
-
+        
       when '--#'
 
         self.summary[:rawdoc_type] = 'sectionx'
         raw_lines.shift
 
         raw_lines.join.lstrip.split(/(?=^#[^#])/).map {|x| [x.rstrip]}
-
+        
     else
 
       raw_lines = raw_lines.join("\n").gsub(/^(\s*#[^\n]+|\n)/,'').lines.to_a
-
+      
       if @linked then
 
         parse_links(raw_lines)
@@ -1161,42 +1169,42 @@ EOF
         a2 = raw_lines.map.with_index do |x,i|
 
           next if x[/^\s+$|\n\s*#/]
-
+          
           begin
-
+            
             field_names, field_values = RXRawLineParser.new(@format_mask).parse(x)
           rescue
             raise "input file parser error at line " + (i + 1).to_s + ' --> ' + x
           end
           field_values
         end
-
+      
         a2.compact!
         a3 = a2.compact.map(&:first)
-
+        
         if a3 != a3.uniq then
-
+          
           if @unique then
             raise DynarexException, "Duplicate id found"
           else
-            add_id(a2)
+            add_id(a2) 
           end
-
+          
         end
-
+        
         a2
-      end
+      end      
 
     end
 
-    a = lines.map.with_index do |x,i|
-
+    a = lines.map.with_index do |x,i| 
+      
       created = Time.now.to_s
 
       h = Hash[
         @fields.zip(
           x.map do |t|
-
+            
             t.to_s[/^---(?:\s|\n)/] ? YAML.load(t[/^---(?:\s|\n)(.*)/,1]) : unescape(t.to_s)
           end
         )
@@ -1218,12 +1226,12 @@ EOF
         item[:body].each do |k,v|
           h[key][:body][k.to_sym] = v
         end
-      else
+      else        
         item[:id] = (@order == 'descending' ? (h2.count) - i : i+ 1).to_s
         i += 1
         h[key] = item.clone
-      end
-    end
+      end      
+    end    
 
     h.each {|key, item| h.delete(key) if not h2.has_key? key}
 
@@ -1232,9 +1240,9 @@ EOF
     rebuild_doc
     self
   end
-
+  
   def sort_records_by!(&element_blk)
-
+    
     refresh_doc
     a = @doc.root.xpath('records/*').sort_by &element_blk
     @doc.root.delete('records')
@@ -1247,36 +1255,36 @@ EOF
 
     load_records if @dirty_flag
     self
-  end
+  end    
 
   def unescape(s)
     s.gsub('&lt;', '<').gsub('&gt;','>')
   end
 
   def dynarex_new(s, default_key: nil)
-
+    
     @schema = schema = s
     @default_key = default_key if default_key
-
+    
     ptrn = %r((\w+)\[?([^\]]+)?\]?\/(\w+)\(([^\)]+)\))
 
     if s.match(ptrn) then
-
-      @root_name, raw_summary, record_name, raw_fields = s.match(ptrn).captures
+      
+      @root_name, raw_summary, record_name, raw_fields = s.match(ptrn).captures 
       reserved = %w(require parent gem)
 
       raise 'reserved keyword: ' + record_name if reserved.include? record_name
       summary, fields = [raw_summary || '',raw_fields].map {|x| x.split(/,/).map &:strip}
-
+      
       if fields.include? 'id' then
-        raise 'Dynarex#dynarex_new: schema field id is a reserved keyword'
+        raise 'Dynarex#dynarex_new: schema field id is a reserved keyword' 
       end
-
+      
       create_find fields
-
+      
 
       raise 'reserved keyword' if (fields & reserved).any?
-
+      
     else
       ptrn = %r((\w+)\[?([^\]]+)?\]?)
       @root_name, raw_summary = s.match(ptrn).captures
@@ -1299,36 +1307,36 @@ EOF
   def attach_record_methods()
     create_find @fields
   end
-
+  
   def openx(s)
     #@logger.debug 'inside openx'
     if s[/</] then # xml
       #@logger.debug 'regular string'
       #@logger.debug 's: ' + s.inspect
       buffer = s
-
+              
     elsif s[/[\[\(]/] # schema
 
       dynarex_new(s)
-
+      
     elsif s[/^https?:\/\//] then  # url
       buffer, type = RXFReader.read s, {username: @username,
-                                     password: @password, auto: false}
+                                     password: @password, auto: false}              
     elsif s[/^dfs?:\/\//] or RXFReadWrite.fs[0..2] == 'dfs' then
+      
+      @local_filepath = s      
 
-      @local_filepath = s
-
-      if FileX.exists? s then
+      if FileX.exist? s then
         buffer = FileX.read(s).force_encoding("UTF-8")
       elsif @schema
-        dynarex_new @schema, default_key: @default_key
+        dynarex_new @schema, default_key: @default_key        
       end
-
+      
     else # local file
-
+      
       @local_filepath = s
-
-      if File.exists? s then
+      
+      if File.exist? s then 
         buffer = File.read s
       elsif @schema
         dynarex_new @schema, default_key: @default_key
@@ -1337,18 +1345,18 @@ EOF
       end
     end
     #@logger.debug 'buffer: ' + buffer[0..120]
-
+    
     return import(buffer) if buffer =~ /^<\?dynarex\b/
 
     if buffer then
 
       raw_stylesheet = buffer.slice!(/<\?xml-stylesheet[^>]+>/)
       @xslt = raw_stylesheet[/href=["']([^"']+)/,1] if raw_stylesheet
-
-      @doc = Rexle.new(buffer) unless @doc
+      
+      @doc = Rexle.new(buffer) unless @doc      
       #@logger.debug 'openx/@doc : ' + @doc.xml.inspect
     end
-
+    
     return if @doc.root.nil?
     e = @doc.root.element('summary')
 
@@ -1357,20 +1365,20 @@ EOF
     @summary = summary_to_h
 
     summary_methods = (@summary.keys - self.public_methods)
-
+    
     summary_methods.each do |x|
-
+      
       instance_eval "
-
+      
         def #{x.to_sym}()
           @summary[:#{x}]
         end
-
+      
         def #{x.to_s}=(v)
           @summary[:#{x}] = v
           @doc.root.element('summary/#{x.to_s}').text = v
         end
-        "
+        "      
     end
 
     @order = @summary[:order] if @summary.has_key? :order
@@ -1392,7 +1400,7 @@ EOF
 
     if @fields then
 
-      @default_key = @fields[0] unless @default_key
+      @default_key = @fields[0] unless @default_key     
       # load the record query handler methods
       attach_record_methods
     else
@@ -1400,46 +1408,46 @@ EOF
       #jr080912 @default_key = @doc.root.xpath('records/*/*').first.name
       @default_key = @doc.root.element('records/./.[1]').name
     end
-
+    
     @summary[:default_key] = @default_key.to_s
-
+    
     if @doc.root.xpath('records/*').length > 0 then
-      @record_name = @doc.root.element('records/*[1]').name
+      @record_name = @doc.root.element('records/*[1]').name            
       #jr240913 load_records
       @dirty_flag = true
     end
 
-  end
+  end  
 
   def load_records
-
+    
     puts 'inside load_records'.info if @debug
-
+    
     @dirty_flag = false
-
+    
     if @summary[:order] then
-      orderfield = @summary[:order][/(\w+)\s+(?:ascending|descending)/,1]
+      orderfield = @summary[:order][/(\w+)\s+(?:ascending|descending)/,1] 
       sort_records_by! {|x| x.element(orderfield).text }  if orderfield
     end
-
+    
     @records = records_to_h
-
+      
     @records.instance_eval do
        def delete_item(i)
          self.delete self.keys[i]
        end
     end
-
+      
     #Returns a ready-only snapshot of records as a simple Hash.
     @flat_records = @records.values.map{|x| x[:body]}
 
   end
-
+  
 
   def display()
     puts @doc.to_s
   end
-
+ 
   def records_to_h(order=:ascending)
 
     i = @doc.root.xpath('max(records/*/attribute::id)') || 0
@@ -1460,25 +1468,25 @@ EOF
       end
 
       body = (@fields - ['uid']).inject({}) do |r,field|
-
+        
         node = row.element field.to_s
 
         if node then
           text = node.text ? node.text.unescape : ''
 
-          r.merge node.name.to_sym => (text[/^---(?:\s|\n)/] ?
+          r.merge node.name.to_sym => (text[/^---(?:\s|\n)/] ? 
                               YAML.load(text[/^---(?:\s|\n)(.*)/,1]) : text)
         else
           r
         end
       end
-
+      
       body[:uid] = id if @default_key == 'uid'
 
       attributes = row.attributes
       result.merge body[@default_key.to_sym] => attributes.merge({id: id, body: body})
     end
-
+    
     puts 'records_to_h a: ' + a.inspect if @debug
     #@logger.debug 'a: ' + a.inspect
     a
@@ -1494,29 +1502,29 @@ EOF
 
     # get the fields
     a4 = a3.map{|x| x.scan(/^\w+(?=:)/)}.flatten(1).uniq
-
+    
     abbrv_fields = a4.all? {|x| x.length == 1}
 
     a5 = a3.map do |xlines|
-
+    
       puts 'xlines: ' + xlines.inspect if @debug
-
+      
       missing_fields = a4 - xlines.scan(/^\w+(?=:)/)
 
       r = xlines.split(/\n(\w+:.*)/m)
       puts 'r: ' + r.inspect if @debug
-
+      
       missing_fields.map!{|x| x + ":"}
       key = (abbrv_fields ? @fields[0].to_s[0] : @fields.first.to_s) + ':'
-
+      
       if missing_fields.include? key
         r.unshift key
         missing_fields.delete key
       end
-
+      
       r += missing_fields
       r.join("\n")
-
+    
     end
     puts 'a5: ' + a5.inspect if @debug
 
@@ -1528,22 +1536,22 @@ EOF
       r << @fields.map do |field|
         x.text(abbrv_fields ? field.to_s.chr : field.to_s )
       end
-
+      
     end
 
-    a2.compact!
-
-    # if there is no field value for the first field then
+    a2.compact!        
+      
+    # if there is no field value for the first field then 
     #   the default_key is invalid. The default_key is changed to an ID.
     if a2.detect {|x| x.first == ''} then
       add_id(a2)
     else
 
       a3 = a2.map(&:first)
-      add_id(a2) if a3 != a3.uniq
-
+      add_id(a2) if a3 != a3.uniq 
+      
     end
-
+    
     a2
 
   end
@@ -1579,13 +1587,13 @@ XSL
     @doc = Rexle.new(Rexslt.new(xsl, self.to_xml).to_s)
     @dirty_flag = true
   end
-
+  
   def summary_to_h
 
     h = {recordx_type: 'dynarex'}
-
+    
     @doc.root.xpath('summary/*').inject(h) do |r,node|
-      r.merge node.name.to_s.to_sym =>
+      r.merge node.name.to_s.to_sym => 
             node.text ? node.text.unescape : node.text.to_s
     end
   end
